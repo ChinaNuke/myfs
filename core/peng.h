@@ -1,0 +1,1 @@
+char *amazing(char *);
