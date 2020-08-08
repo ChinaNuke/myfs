@@ -16,12 +16,14 @@ DEFINES += QT_DEPRECATED_WARNINGS
 #DEFINES += QT_DISABLE_DEPRECATED_BEFORE=0x060000    # disables all the APIs deprecated before Qt 6.0.0
 
 SOURCES += \
-    ../core/peng.c \
+    ../core/utils/file_operation.c \
+    ../core/virtual_disk.c \
     ../demo/filesystem.cpp \
     ../demo/main.cpp
 
 HEADERS += \
-    ../core/peng.h \
+    ../core/utils/file_operation.h \
+    ../core/virtual_disk.h \
     ../demo/filesystem.h
 
 FORMS += \

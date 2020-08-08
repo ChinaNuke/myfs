@@ -15,10 +15,10 @@ class FileSystem : public QWidget {
    public:
     FileSystem(QWidget *parent = nullptr);
     ~FileSystem();
-
+/*
    private slots:
     void on_btnCall_clicked();
-
+*/
    private:
     Ui::FileSystem *ui;
 };
