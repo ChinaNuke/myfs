@@ -11,7 +11,7 @@
  */
 
 #define SECTOR_SIZE 512
-#define DISK_ERROR -1
+#define VDISK_ERROR -1
 
 typedef int32_t vdisk_handle_t; /* 虚拟磁盘句柄 */
 
@@ -22,11 +22,11 @@ vdisk_handle_t vdisk_add(const char* filepath);
 int vdisk_remove(vdisk_handle_t handle);
 
 /* 从虚拟磁盘读入数据（以扇区为单位） */
-int vdisk_read(vdisk_handle_t handle, uint64_t sector, uint64_t count,
-               char* buf);
+uint64_t vdisk_read(vdisk_handle_t handle, uint64_t sector, uint64_t count,
+                    char* buf);
 
 /* 向虚拟磁盘写入数据（以扇区为单位） */
-int vdisk_write(vdisk_handle_t handle, uint64_t sector, uint64_t count,
-                const char* buf);
+uint64_t vdisk_write(vdisk_handle_t handle, uint64_t sector, uint64_t count,
+                     const char* buf);
 
 #endif
