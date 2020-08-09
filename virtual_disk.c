@@ -24,7 +24,7 @@ vdisk_handle_t vdisk_add(const char *filepath) {
     }
     /* 如果该文件已经被添加为vdisk，则不能重复添加 */
     for (vdisk_handle_t i = 0; i < h_top; i++) {
-        if (vdisks[i]->filepath == filepath) {
+        if (strcmp(vdisks[i]->filepath, filepath) == 0) {
             return VDISK_ERROR;
         }
     }
