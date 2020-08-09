@@ -35,3 +35,13 @@ OS课程设计，基于磁盘存储设备的UNIX文件系统。
 - [ ] 两人一起对dev分支进行测试，确保没有问题后merge到master分支，core部分开发结束。
 - [ ] 进行GUI部分开发。
 
+## 编译
+
+```bash
+mkdir build
+cd build
+cmake ..
+make
+```
+
+目前尚无可以运行的程序，可以运行 main 看是否正常编译，会输出一行 `HelloWorld!` 。
