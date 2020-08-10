@@ -24,7 +24,7 @@
  * 成功返回0，失败返回BLOCK_ERROR
  */
 int block_read(vdisk_handle_t handle, uint32_t block, uint32_t blocksize,
-               char* buf);
+               void* buf);
 
 /*
  * 读取一个block
@@ -35,6 +35,6 @@ int block_read(vdisk_handle_t handle, uint32_t block, uint32_t blocksize,
  * 成功返回0，失败返回BLOCK_ERROR
  */
 int block_write(vdisk_handle_t handle, uint32_t block, uint32_t blocksize,
-                char* buf);
+                const void* buf);
 
 #endif /* __BLOCK__H__ */

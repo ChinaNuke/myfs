@@ -52,7 +52,7 @@ int vdisk_remove(vdisk_handle_t handle) {
 }
 
 int64_t vdisk_read(vdisk_handle_t handle, uint32_t sector, uint32_t count,
-                   char *buf) {
+                   void *buf) {
     if (handle < 0 || handle >= MAX_VDISK_COUNT || vdisks[handle] == NULL) {
         return VDISK_ERROR;
     }
@@ -78,7 +78,7 @@ int64_t vdisk_read(vdisk_handle_t handle, uint32_t sector, uint32_t count,
 }
 
 int64_t vdisk_write(vdisk_handle_t handle, uint32_t sector, uint32_t count,
-                    const char *buf) {
+                    const void *buf) {
     if (handle < 0 || handle >= MAX_VDISK_COUNT || vdisks[handle] == NULL) {
         return VDISK_ERROR;
     }
