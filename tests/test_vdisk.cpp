@@ -4,6 +4,7 @@
 
 extern "C" {
 #include "virtual_disk.h"
+#include "block.h"
 }
 
 TEST_CASE("VirtualDisk All", "[vdisk]") {
@@ -47,10 +48,17 @@ TEST_CASE("VirtualDisk All", "[vdisk]") {
     vdisk_read(handle1, 6, 2,
                buf1); /* 从6号扇区（第7个）开始读取两个扇区的内容 */
     REQUIRE(strncmp(buf1, buf_w + SECTOR_SIZE * 6, SECTOR_SIZE * 2) == 0);
+    /*block测试 */
+    char buf_block[8*SECTOR_SIZE]; /*一个块大小 */
+    block_read(handle1,4,0,buf_block);/*从handle1磁盘读取第一块 */
+    REQUIRE(strcmp(buf_block，buf_w,SECTOR_SIZE*8)==0);
+    
+    
 
-    vdisk_write(handle2, 1024, 32, buf_w);
-    vdisk_read(handle2, 1024, 8, buf2);
-    REQUIRE(strncmp(buf2, buf_w, SECTOR_SIZE * 8) == 0);
+    // vdisk_write(handle2, 1024, 32, buf_w);
+    // vdisk_read(handle2, 1024, 8, buf2);
+    // REQUIRE(strncmp(buf2, buf_w, SECTOR_SIZE * 8) == 0);
+    
 
     /* 移除虚拟磁盘 */
     REQUIRE(vdisk_remove(handle1) == 0);
@@ -60,3 +68,4 @@ TEST_CASE("VirtualDisk All", "[vdisk]") {
     remove(vdisk1);
     remove(vdisk2);
 }
+
