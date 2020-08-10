@@ -27,21 +27,21 @@ TEST_CASE("Block All", "[block]") {
     }
 
     /* 常规读写测试 */
-    REQUIRE(block_write(handle, 1, blocksize, buf_w) == 0);
-    REQUIRE(block_write(handle, 2, blocksize, buf_w + blocksize) == 0);
+    REQUIRE(block_write(handle, blocksize, 1, buf_w) == 0);
+    REQUIRE(block_write(handle, blocksize, 2, buf_w + blocksize) == 0);
     char buf_r[blocksize];
-    REQUIRE(block_read(handle, 1, blocksize, buf_r) == 0);
+    REQUIRE(block_read(handle, blocksize, 1, buf_r) == 0);
     REQUIRE(strncmp(buf_r, buf_w, blocksize) == 0);
-    REQUIRE(block_read(handle, 2, blocksize, buf_r) == 0);
+    REQUIRE(block_read(handle, blocksize, 2, buf_r) == 0);
     REQUIRE(strncmp(buf_r, buf_w + blocksize, blocksize) == 0);
 
     /* 边界条件读写测试 */
-    REQUIRE(block_write(handle, 3, blocksize, buf_w) == 0);
-    REQUIRE(block_write(handle, 4, blocksize, buf_w) == BLOCK_ERROR);
-    REQUIRE(block_write(handle, 5, blocksize, buf_w) == BLOCK_ERROR);
-    REQUIRE(block_read(handle, 3, blocksize, buf_r) == 0);
-    REQUIRE(block_read(handle, 4, blocksize, buf_r) == BLOCK_ERROR);
-    REQUIRE(block_read(handle, 5, blocksize, buf_r) == BLOCK_ERROR);
+    REQUIRE(block_write(handle, blocksize, 3, buf_w) == 0);
+    REQUIRE(block_write(handle, blocksize, 4, buf_w) == BLOCK_ERROR);
+    REQUIRE(block_write(handle, blocksize, 5, buf_w) == BLOCK_ERROR);
+    REQUIRE(block_read(handle, blocksize, 3, buf_r) == 0);
+    REQUIRE(block_read(handle, blocksize, 4, buf_r) == BLOCK_ERROR);
+    REQUIRE(block_read(handle, blocksize, 5, buf_r) == BLOCK_ERROR);
 
     vdisk_remove(handle);
     remove(vdisk1);

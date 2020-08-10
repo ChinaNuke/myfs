@@ -23,7 +23,7 @@
  * buf: 输出缓冲区
  * 成功返回0，失败返回BLOCK_ERROR
  */
-int block_read(vdisk_handle_t handle, uint32_t block, uint32_t blocksize,
+int block_read(vdisk_handle_t handle, uint32_t blocksize, uint32_t block,
                void* buf);
 
 /*
@@ -34,7 +34,7 @@ int block_read(vdisk_handle_t handle, uint32_t block, uint32_t blocksize,
  * buf: 输出缓冲区
  * 成功返回0，失败返回BLOCK_ERROR
  */
-int block_write(vdisk_handle_t handle, uint32_t block, uint32_t blocksize,
+int block_write(vdisk_handle_t handle, uint32_t blocksize, uint32_t block,
                 const void* buf);
 
 #endif /* __BLOCK__H__ */
