@@ -46,3 +46,5 @@
 [CSDN: Unix文件系统基本概述](https://blog.csdn.net/pl20140910/article/details/80298312)
 
 [CSDN: 简单介绍Linux文件系统中superblock、inode、dentry、file](https://blog.csdn.net/ygtlovezf/article/details/69390043)
+
+[Linux 深入理解inode/block/superblock](https://www.cnblogs.com/machangwei-8/p/10354451.html)
