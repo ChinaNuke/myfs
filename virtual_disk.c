@@ -11,39 +11,37 @@
 typedef struct vdisk {
     FILE *fp;
     char *filepath;
-    uint64_t sector_count;
+    uint32_t sector_count;
 } vdisk_t;
 
 vdisk_t *vdisks[MAX_VDISK_COUNT] = {NULL};
-vdisk_handle_t h_top = 0; /* 指向最后一个vdisk之后的空位置 */
 
 vdisk_handle_t vdisk_add(const char *filepath) {
-    /* 如果当前所管理的最大vdisk数达到了上限，则不能再添加新的vdisk */
-    if (h_top >= MAX_VDISK_COUNT) {
-        return VDISK_ERROR;
-    }
     /* 如果该文件已经被添加为vdisk，则不能重复添加 */
-    for (vdisk_handle_t i = 0; i < h_top; i++) {
-        if (strcmp(vdisks[i]->filepath, filepath) == 0) {
+    for (vdisk_handle_t i = 0; i < MAX_VDISK_COUNT; i++) {
+        if (vdisks[i] != NULL && strcmp(vdisks[i]->filepath, filepath) == 0) {
             return VDISK_ERROR;
         }
     }
 
-    vdisks[h_top] = (vdisk_t *)malloc(sizeof(vdisk_t));
+    /* 从头开始寻找第一个空的位置 */
+    for (vdisk_handle_t i = 0; i < MAX_VDISK_COUNT; i++) {
+        if (vdisks[i] == NULL) {
+            vdisks[i] = (vdisk_t *)malloc(sizeof(vdisk_t));
+            vdisks[i]->filepath =
+                (char *)malloc((strlen(filepath) + 1) * sizeof(char));
+            strcpy(vdisks[i]->filepath, filepath);
+            vdisks[i]->fp = fopen(filepath, "r+b");
+            vdisks[i]->sector_count = u_filesize(vdisks[i]->fp) / SECTOR_SIZE;
+            return i;
+        }
+    }
 
-    vdisks[h_top]->filepath =
-        (char *)malloc((strlen(filepath) + 1) * sizeof(char));
-    strcpy(vdisks[h_top]->filepath, filepath);
-
-    vdisks[h_top]->fp = fopen(filepath, "r+b");
-
-    vdisks[h_top]->sector_count = u_filesize(vdisks[h_top]->fp) / SECTOR_SIZE;
-
-    return h_top++;
+    return VDISK_ERROR;
 }
 
 int vdisk_remove(vdisk_handle_t handle) {
-    if (handle < 0 || handle >= h_top) {
+    if (handle < 0 || handle >= MAX_VDISK_COUNT || vdisks[handle] == NULL) {
         return VDISK_ERROR;
     }
     fclose(vdisks[handle]->fp);
@@ -53,9 +51,9 @@ int vdisk_remove(vdisk_handle_t handle) {
     return 0;
 }
 
-uint64_t vdisk_read(vdisk_handle_t handle, uint64_t sector, uint64_t count,
-                    char *buf) {
-    if (handle < 0 || handle >= h_top) {
+int64_t vdisk_read(vdisk_handle_t handle, uint32_t sector, uint32_t count,
+                   char *buf) {
+    if (handle < 0 || handle >= MAX_VDISK_COUNT || vdisks[handle] == NULL) {
         return VDISK_ERROR;
     }
 
@@ -72,19 +70,20 @@ uint64_t vdisk_read(vdisk_handle_t handle, uint64_t sector, uint64_t count,
     fread(buf, SECTOR_SIZE, count, vdisk->fp);
 
     if (ferror(vdisk->fp)) {
+        clearerr(vdisk->fp); /* 必须清除error，否则下一次必定还error */
         return VDISK_ERROR;
     } else {
         return count;
     }
 }
 
-uint64_t vdisk_write(vdisk_handle_t handle, uint64_t sector, uint64_t count,
-                     const char *buf) {
-    if (handle < 0 || handle >= h_top) {
+int64_t vdisk_write(vdisk_handle_t handle, uint32_t sector, uint32_t count,
+                    const char *buf) {
+    if (handle < 0 || handle >= MAX_VDISK_COUNT || vdisks[handle] == NULL) {
         return VDISK_ERROR;
     }
 
-    /* 定位文件指针到要读取的起始扇区 */
+    /* 定位文件指针到要写入的起始扇区 */
     vdisk_t *vdisk = vdisks[handle];
     if (fseek(vdisk->fp, sector * SECTOR_SIZE, SEEK_SET) != 0) {
         return VDISK_ERROR;
@@ -96,6 +95,7 @@ uint64_t vdisk_write(vdisk_handle_t handle, uint64_t sector, uint64_t count,
     fwrite(buf, SECTOR_SIZE, count, vdisk->fp);
 
     if (ferror(vdisk->fp)) {
+        clearerr(vdisk->fp);
         return VDISK_ERROR;
     } else {
         return count;

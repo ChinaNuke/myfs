@@ -6,6 +6,9 @@
 /*
  * inode 为文件和目录的索引节点
  *
+ * 一个文件/目录对应一个 inode
+ * 一个 inode 可对应多个 block
+ *
  * 大小固定为 128bytes（或256bytes）
  */
 

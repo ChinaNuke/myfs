@@ -1,7 +1,7 @@
 #include <cstdio>
 #include <cstring>
 
-#include "catch.hpp"
+#include "testtools.h"
 
 extern "C" {
 #include "utils/file_operation.h"
@@ -11,7 +11,7 @@ extern "C" {
 TEST_CASE("Example of sum", "[the_tag]") {
     int a = 1, b = 2;
     REQUIRE(myadd(a, b) == 3);
-    REQUIRE(mywrongadd(a, b) == 3);
+    // REQUIRE(mywrongadd(a, b) == 3);
 }
 
 TEST_CASE("filesize", "[file_operations]") {
