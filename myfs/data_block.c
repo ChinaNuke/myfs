@@ -6,6 +6,10 @@
 int data_blocks_init(vdisk_handle_t handle, uint32_t blocksize,
                      uint32_t data_blocks_start, uint32_t data_blocks_count,
                      block_stack_t *stack) {
+    /* full_groups 为刚好有 GROUP_SIZE(100) 个盘块的组数；
+     * 最后一组可能不满 GROUP_SIZE 个盘块，这一组含有的盘块数保存到
+     * last_group_blocks 中，它的值可能为 0.
+     */
     uint32_t full_groups = data_blocks_count / GROUP_SIZE;
     uint8_t last_group_blocks = data_blocks_count % GROUP_SIZE;
 
@@ -44,6 +48,12 @@ int data_blocks_init(vdisk_handle_t handle, uint32_t blocksize,
         if (dump_group(handle, blocksize, cur_group_block, &temp_stack) != 0) {
             return BLOCK_ERROR;
         }
+
+        /* TODO(peng): 课本上的描述是最后一组空闲盘块号存放在倒数第二组栈的 1-99
+         * 的位置中，0 的位置存放 0 作为结束标志，
+         * 而最后一组的首个盘块中存放空闲盘块链的结尾标志，
+         * 是否有这样做的必要还有待考究。
+         */
     }
     return 0;
 }
