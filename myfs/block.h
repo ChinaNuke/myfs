@@ -9,10 +9,10 @@
  * Block
  * 一个 Block 可由一个或多个扇区组成
  * 文件系统以 block 为单位对磁盘进行读写，一次读写一个块
- * 常见的：一个block由连续的八个扇区组成，大小是4k{SECTOR_SIZE（512字节）*8}
+ *
+ * block 大小在文件系统格式化时确定，可以为 1K， 2K， 4K 三种
  */
 
-#define BLOCK_SIZE SECTOR_SIZE * 8
 #define BLOCK_ERROR -1
 
 /*
