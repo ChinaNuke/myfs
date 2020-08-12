@@ -48,3 +48,7 @@
 [CSDN: 简单介绍Linux文件系统中superblock、inode、dentry、file](https://blog.csdn.net/ygtlovezf/article/details/69390043)
 
 [Linux 深入理解inode/block/superblock](https://www.cnblogs.com/machangwei-8/p/10354451.html)
+
+[CSDN: inode结构体成员详解](https://blog.csdn.net/trochiluses/article/details/9354557)
+
+[理解inode - 阮一峰的网络日志](https://www.ruanyifeng.com/blog/2011/12/inode.html)

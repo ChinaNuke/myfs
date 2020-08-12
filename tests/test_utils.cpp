@@ -21,7 +21,7 @@ TEST_CASE("filesize", "[file_operations]") {
     const char* str = "HelloWorld!";
     fwrite(str, sizeof(char), strlen(str) + 1, fp);
 
-    REQUIRE(u_filesize(fp) == 12);
+    REQUIRE(ut_filesize(fp) == 12);
 
     char out[12];
     fseek(fp, 0, SEEK_SET); /* 把文件指针重新指向开头，这一步一定要有！！ */

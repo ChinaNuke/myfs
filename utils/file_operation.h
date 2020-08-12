@@ -3,6 +3,6 @@
 
 #include <stdio.h>
 
-size_t u_filesize(FILE* fp);
+size_t ut_filesize(FILE* fp);
 
 #endif

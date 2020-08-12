@@ -5,6 +5,7 @@
 extern "C" {
 #include "myfs/block.h"
 #include "myfs/data_block.h"
+#include "myfs/filesystem.h"
 }
 
 TEST_CASE("Block All", "[myfs][block]") {
@@ -237,6 +238,22 @@ TEST_CASE("Data Block Alloc and Free", "[myfs][data_block]") {
         REQUIRE(stack1.top == 0);
         REQUIRE(stack1.blocks[stack1.top] == 250);
     }
+
+    vdisk_remove(handle1);
+    remove(vdisk1);
+}
+
+TEST_CASE("Filesystem Format", "[myfs][filesystem]") {
+    /*
+     * 测试 myfs_format() 的功能
+     */
+    const uint16_t blocksize = 4096;
+    const char vdisk1[] = "Testing/Temporary/vdisk_filesystem.fs";
+    tt_create_diskfile(vdisk1, 2000 * blocksize); /* 8MB */
+    vdisk_handle_t handle1 = vdisk_add(vdisk1);
+    CAPTURE(handle1);
+
+    REQUIRE(myfs_format(handle1, blocksize) == 0);
 
     vdisk_remove(handle1);
     remove(vdisk1);

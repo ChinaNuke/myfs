@@ -26,6 +26,10 @@ TEST_CASE("VirtualDisk All", "[vdisk]") {
     vdisk_handle_t handle2plus = vdisk_add(vdisk2);
     REQUIRE(handle2plus == VDISK_ERROR);
 
+    /* 测试获取vdisk设备大小 */
+    REQUIRE(vdisk_get_size(handle1) == 32 * SECTOR_SIZE);
+    REQUIRE(vdisk_get_size(handle2) == 2048 * SECTOR_SIZE);
+
     /* 生成32个扇区大小的随机内容 */
     char buf_w[32 * SECTOR_SIZE];
     srand((unsigned)time(NULL));

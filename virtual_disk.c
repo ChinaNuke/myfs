@@ -32,7 +32,7 @@ vdisk_handle_t vdisk_add(const char *filepath) {
                 (char *)malloc((strlen(filepath) + 1) * sizeof(char));
             strcpy(vdisks[i]->filepath, filepath);
             vdisks[i]->fp = fopen(filepath, "r+b");
-            vdisks[i]->sector_count = u_filesize(vdisks[i]->fp) / SECTOR_SIZE;
+            vdisks[i]->sector_count = ut_filesize(vdisks[i]->fp) / SECTOR_SIZE;
             return i;
         }
     }
@@ -99,5 +99,13 @@ int64_t vdisk_write(vdisk_handle_t handle, uint32_t sector, uint32_t count,
         return VDISK_ERROR;
     } else {
         return count;
+    }
+}
+
+uint64_t vdisk_get_size(vdisk_handle_t handle) {
+    if (vdisks[handle] != NULL) {
+        return vdisks[handle]->sector_count * SECTOR_SIZE;
+    } else {
+        return 0;
     }
 }

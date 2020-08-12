@@ -31,4 +31,7 @@ int64_t vdisk_read(vdisk_handle_t handle, uint32_t sector, uint32_t count,
 int64_t vdisk_write(vdisk_handle_t handle, uint32_t sector, uint32_t count,
                     const void* buf);
 
+/* 获取虚拟磁盘的大小 */
+uint64_t vdisk_get_size(vdisk_handle_t handle);
+
 #endif

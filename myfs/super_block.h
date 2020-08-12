@@ -3,21 +3,28 @@
 
 #include <stdint.h>
 
+#include "data_block.h"
+
 /*
  * Superblock 是文件系统最基本的元数据，它记录此 filesystem 的整体信息，
- * 包括inode/block的总量、使用量、剩余量，以及档案系统的格式与相关信息等
+ * 包括 inode 和 block 的总量、使用量、剩余量，以及档案系统的格式与相关信息等
  * Superblock 的大小一般为固定的 1024bytes
+ * 默认它单独占用一个 block
  */
 
-/* 暂时没有具体考虑每个属性的实际大小，统一写为 uint16，后面再来修改 */
 typedef struct {
     uint16_t block_size; /* 块的字节数，一般为1K，2K，4K */
-    uint16_t inode_size;
-    uint16_t inode_count;
-    uint16_t block_count;
-    uint16_t free_inodes;
-    uint16_t free_blocks;
-    uint16_t total_size;
+    uint16_t inode_size; /* inode 大小，128Byte，目前情况可以考虑不要这个字段 */
+    uint32_t blocks_count; /* data block 数 */
+    uint32_t inodes_count;
+    uint32_t free_blocks_count; /* 空闲 data block 数 */
+    uint32_t free_inodes_count;
+    uint32_t first_data_block; /* 第一个使用的 data block 块号??? */
+    uint64_t total_size;       /* 文件系统大小（字节） */
+    // uint32_t inode_bitmap;     /* inode bitmap 的块号*/
+    // uint32_t inode_table;      /* inode table 的块号 */
+    block_stack_t first_group_stack; /* 第一个空闲盘块号栈 */
+
 } super_block_t;
 
 #endif
