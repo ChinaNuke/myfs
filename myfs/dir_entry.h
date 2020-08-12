@@ -3,48 +3,45 @@
 
 /*目录项
  *文件名和索引节号（一一对应）的集合
- *目录项长度可变：取决于实际文件名的大小
  */
-
-#include "inode.h"
-
-/*文件类型表 */
+#include "block.h"
+/*文件类型表 下标是file_type_id*/
 #define FILE_TYPE_COUNT 8
 char file_type[FILE_TYPE_COUNT][20] ={"未知","普通文件","目录","字符设备","块设备","命名管道","套接字","符号链接"};
-
-#define MAX_NAME_LNE 255 //文件名最大长度(单位：字符)
 
 #define DIR_ENTRY_ERROR -1
 
 struct dir_entry{
-    inode_no_t inode_addr;  //inode号
-    uint8_t name_len;    //实际文件名长度
-    char name[MAX_NAME_LNE];
+    uint16_t inode_addr;  //inode号
+    char name[29];
     uint8_t file_type_id;  //文件类型id
-    uint8_t rec_len;   //该目录项长度
-
+    
 }dir_entry_t;
 
-#define MAX_DIR_ENTRY_COUNT 10000
-
-dir_entry_t dir_entry_list[MAX_DIR_ENTRY_COUNT]
+/*node_id: 2 byte
+ *name: 29 byte
+ *file_type_id: 1 byte
+ */
+#define REC_LEN  32  /*目录项长度(单位: 字节)  1k,2k,4k block分别存32,64,128个目录项 */
 
 /*读目录项所在的blcok 
  *block:目录项存储的起始块号
 */
-uint8_t read_dir_block(vdisk_handle_t handle,uint32_t blocksize, uint32_t block,
-               void* buf);
+// uint8_t read_dir_block(vdisk_handle_t handle,uint32_t blocksize, uint32_t block,
+//                void* buf);
 
-/*添加目录
- *addr:当前所在目录项起始地址(块号)
+/*新建目录
+ *inode_id:当前目录的inode号
  *name:要创建的文件名
 */
-int add_document(char* name,vdisk_handle_t handle,uint32_t blocksize,uint32_t block);
+int add_document(char* name,vdisk_handle_t handle,uint32_t blocksize,uint16_t inode_id);
 
 /*删除目录 */
 int del_document();
 
-/*通过文件名查找inode号 */
-inode_no_t search_inode_addr();
+/*通过文件名查找inode号 
+ *block:存放目录项的block号
+*/
+uint16_t search_inode_addr(char* name,vdisk_handle_t handle,uint32_t block,uint32_t blocksize);
 
 #endif
