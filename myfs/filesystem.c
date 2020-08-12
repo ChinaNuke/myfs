@@ -7,6 +7,8 @@
 #define CEIL_DIVIDE(A, B) (((A) + (B)-1) / (B))
 
 int myfs_format(vdisk_handle_t handle, uint16_t blocksize) {
+    /* TODO(peng): 格式化时应建立根目录并在superblock中设置字段指向根目录 */
+
     /*
      * blocksize 一般为 1KB/2KB/4KB
      *

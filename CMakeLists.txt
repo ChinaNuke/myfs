@@ -4,6 +4,7 @@ project(Unix-Filesystem VERSION 0.1)
 
 # 添加库目录
 add_subdirectory(myfs)
+#add_subdirectory(myshell)
 add_subdirectory(utils)
 
 # 获取各目录下的源文件列表
@@ -11,11 +12,16 @@ add_subdirectory(utils)
 aux_source_directory(. DIR_SRCS)
 list(REMOVE_ITEM DIR_SRCS ./main.c)
 aux_source_directory(tests/ TESTS_SRCS)
+aux_source_directory(myshell/ MYSH_SRCS)
 
 # 主程序
-add_executable(main main.c ${DIR_SRCS})
-target_link_libraries(main myfs utils)
-target_include_directories(main PUBLIC "${PROJECT_SOURCE_DIR}")
+add_executable(mysh ${MYSH_SRCS})
+#target_link_libraries(mysh myshell)
+#target_include_directories(mysh PUBLIC "${PROJECT_SOURCE_DIR}")
+
+#add_executable(main main.c ${DIR_SRCS})
+#target_link_libraries(main myfs utils)
+#target_include_directories(main PUBLIC "${PROJECT_SOURCE_DIR}")
 
 # 测试
 add_executable(testall ${TESTS_SRCS} ${DIR_SRCS})

@@ -17,7 +17,7 @@
  */
 typedef struct {
     uint8_t top;
-    uint32_t blocks[100]; /* 最多100个空闲盘块号 */
+    uint32_t blocks[GROUP_SIZE]; /* 最多100个空闲盘块号 */
 } block_stack_t;
 
 /* 数据块区域初始化
