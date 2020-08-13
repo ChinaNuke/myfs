@@ -16,11 +16,11 @@ typedef struct {
     uint16_t block_size; /* 块的字节数，一般为1K，2K，4K */
     uint16_t inode_size; /* inode 大小，128Byte，目前情况可以考虑不要这个字段 */
     uint32_t blocks_count; /* data block 数 */
-    uint32_t inodes_count;
+    uint16_t inodes_count;
     uint32_t free_blocks_count; /* 空闲 data block 数 */
-    uint32_t free_inodes_count;
-    uint32_t first_data_block; /* 第一个使用的 data block 块号??? */
-    uint64_t total_size;       /* 文件系统大小（字节） */
+    uint16_t free_inodes_count;
+    // uint32_t first_data_block; /* 第一个使用的 data block 块号??? */
+    uint64_t total_size; /* 文件系统大小（字节） */
     // uint32_t inode_bitmap;     /* inode bitmap 的块号*/
     // uint32_t inode_table;      /* inode table 的块号 */
     block_stack_t first_group_stack; /* 第一个空闲盘块号栈 */

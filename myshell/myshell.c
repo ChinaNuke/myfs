@@ -15,6 +15,21 @@
 #include <unistd.h>
 
 /*
+ * TODO(peng):
+ * 计划实现以下命令
+ * mount/unmount
+ * ls
+ * cd
+ * pwd
+ * mkdir/rmdir
+ * touch
+ * mv
+ * link/unlink
+ * chmod
+ *
+ */
+
+/*
   内建 shell 命令的函数声明:
  */
 int mysh_cd(char **args);
@@ -227,6 +242,7 @@ void mysh_loop(void) {
 int main(int argc, char **argv) {
     // Load config files, if any.
 
+    mysh_help(NULL);
     // Run command loop.
     mysh_loop();
 

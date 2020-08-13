@@ -27,7 +27,7 @@ int myfs_format(vdisk_handle_t handle, uint16_t blocksize) {
     void *empty_block = calloc(1, blocksize);
     block_write(handle, blocksize, 1, empty_block); /* 写入 bitmap */
 
-    uint32_t inodes_count = 1 * blocksize * 8;
+    uint16_t inodes_count = 1 * blocksize * 8;
     uint32_t inodes_size = inodes_count * INODE_SIZE;
     uint32_t inode_blocks = CEIL_DIVIDE(inodes_size, blocksize);
 
@@ -41,28 +41,28 @@ int myfs_format(vdisk_handle_t handle, uint16_t blocksize) {
 
     /* 初始化 data block 区 */
 
-    super_block_t sblock; /* 写在前面因为要用它的 first_group_stack */
+    super_block_t sb; /* 写在前面因为要用它的 first_group_stack */
     uint32_t data_blocks_start = 2 + inode_blocks;
     uint32_t data_blocks_count = total_blocks - data_blocks_start;
     if (data_blocks_init(handle, blocksize, data_blocks_start,
                          data_blocks_count,
-                         &(sblock.first_group_stack)) == BLOCK_ERROR) {
+                         &(sb.first_group_stack)) == BLOCK_ERROR) {
         return MYFS_ERROR;
     }
 
     /* 初始化 super block */
 
-    sblock.block_size = blocksize;
-    sblock.inode_size = INODE_SIZE;
-    sblock.blocks_count = data_blocks_count;
-    sblock.inodes_count = inodes_count;
-    sblock.free_blocks_count = data_blocks_count;
-    sblock.free_inodes_count = inodes_count;
-    sblock.first_data_block = 1;
-    sblock.total_size = total_blocks * blocksize;
+    sb.block_size = blocksize;
+    sb.inode_size = INODE_SIZE;
+    sb.blocks_count = data_blocks_count;
+    sb.inodes_count = inodes_count;
+    sb.free_blocks_count = data_blocks_count;
+    sb.free_inodes_count = inodes_count;
+    // sb.first_data_block = 1;
+    sb.total_size = total_blocks * blocksize;
 
     void *buf = calloc(1, blocksize);
-    memcpy(buf, &sblock, sizeof(super_block_t));
+    memcpy(buf, &sb, sizeof(super_block_t));
     if (block_write(handle, blocksize, 0, buf) == BLOCK_ERROR) {
         return MYFS_ERROR;
     }

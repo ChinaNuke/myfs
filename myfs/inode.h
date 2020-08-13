@@ -4,7 +4,7 @@
 #include <stddef.h>
 #include <stdint.h>
 
-#include "../virtual_disk.h"
+#include "virtual_disk.h"
 
 /*
  * inode 为文件和目录的索引节点
@@ -47,5 +47,9 @@ typedef uint16_t inode_no_t;  // inode号(0-65535) 每个inode 128bytes 总占8M
  */
 uint32_t block_addr(vdisk_handle_t handle, inode_t* inode, uint16_t no,
                     uint32_t blocksize);
+
+uint16_t inode_alloc(vdisk_handle_t handle, uint16_t blocksize,
+                     uint8_t* bitmap);
+void inode_free(vdisk_handle_t handle, uint16_t inode, char* bitmap);
 
 #endif

@@ -1,9 +1,10 @@
 cmake_minimum_required(VERSION 3.10)
 
-project(Unix-Filesystem VERSION 0.1)
+project(Unix-Filesystem VERSION 0.2)
 
 # 添加库目录
 add_subdirectory(myfs)
+
 add_subdirectory(virtualdisk)
 # add_subdirectory(myshell)
 # add_subdirectory(utils)
@@ -17,8 +18,8 @@ aux_source_directory(myshell/ MYSH_SRCS)
 
 # 主程序
 add_executable(mysh ${MYSH_SRCS})
-#target_link_libraries(mysh myshell)
-#target_include_directories(mysh PUBLIC "${PROJECT_SOURCE_DIR}")
+target_link_libraries(mysh myfs utils)
+target_include_directories(mysh PUBLIC "${PROJECT_SOURCE_DIR}")
 
 # virtual disk
 #add_executable(vdisk virtualdisk/vdisk_main.c)
