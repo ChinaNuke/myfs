@@ -4,7 +4,7 @@
 #include <stdlib.h>
 #include <string.h>
 
-#include "utils/file_operation.h"
+#include "utils.h"
 
 #define MAX_VDISK_COUNT 1024
 

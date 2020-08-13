@@ -3,7 +3,7 @@
 
 #include <stdint.h>
 
-#include "../virtual_disk.h"
+#include "virtual_disk.h"
 
 /*
  * Block

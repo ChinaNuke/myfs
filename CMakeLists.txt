@@ -4,8 +4,9 @@ project(Unix-Filesystem VERSION 0.1)
 
 # 添加库目录
 add_subdirectory(myfs)
-#add_subdirectory(myshell)
-add_subdirectory(utils)
+add_subdirectory(virtualdisk)
+# add_subdirectory(myshell)
+# add_subdirectory(utils)
 
 # 获取各目录下的源文件列表
 # DIR_SRCS包含根目录下除了main.c之外的源文件
@@ -19,14 +20,15 @@ add_executable(mysh ${MYSH_SRCS})
 #target_link_libraries(mysh myshell)
 #target_include_directories(mysh PUBLIC "${PROJECT_SOURCE_DIR}")
 
-#add_executable(main main.c ${DIR_SRCS})
-#target_link_libraries(main myfs utils)
+# virtual disk
+#add_executable(vdisk virtualdisk/vdisk_main.c)
+#target_link_libraries(vdisk virtualdisk)
 #target_include_directories(main PUBLIC "${PROJECT_SOURCE_DIR}")
 
 # 测试
-add_executable(testall ${TESTS_SRCS} ${DIR_SRCS})
-target_link_libraries(testall myfs utils)
-target_include_directories(testall PUBLIC "${PROJECT_SOURCE_DIR}")
+add_executable(testall ${TESTS_SRCS})
+target_link_libraries(testall myfs virtualdisk)
+# target_include_directories(testall PRIVATE "${PROJECT_SOURCE_DIR}")
 
 enable_testing()
 add_test(
