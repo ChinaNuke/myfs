@@ -7,8 +7,6 @@
 #define CEIL_DIVIDE(A, B) (((A) + (B)-1) / (B))
 
 int myfs_format(vdisk_handle_t handle, uint16_t blocksize) {
-    /* TODO(peng): 格式化时应建立根目录并在superblock中设置字段指向根目录 */
-
     /*
      * blocksize 一般为 1KB/2KB/4KB
      *
@@ -50,6 +48,10 @@ int myfs_format(vdisk_handle_t handle, uint16_t blocksize) {
         return MYFS_ERROR;
     }
 
+    /* 建立根目录 */
+    uint32_t root_block =
+        data_block_alloc(handle, blocksize, &(sb.first_group_stack));
+
     /* 初始化 super block */
 
     sb.block_size = blocksize;
@@ -68,5 +70,30 @@ int myfs_format(vdisk_handle_t handle, uint16_t blocksize) {
     }
     free(buf);
 
+    return 0;
+}
+
+int myfs_mount(vdisk_handle_t handle, myfs_t **fs) {
+    myfs_t *filesystem = (myfs_t *)malloc(sizeof(myfs_t));
+    super_block_t *sblock = (super_block_t *)malloc(sizeof(super_block_t));
+
+    /* 默认 super block 大小不会超过1K，所以在不知道 blocksize 的情况下按 1K
+     * 读出 super block */
+    void *buf = calloc(1, BLK_SIZE_1K);
+    if (block_read(handle, BLK_SIZE_1K, 0, buf) != 0) {
+        return MYFS_ERROR;
+    }
+    memcpy(sblock, buf, sizeof(super_block_t));
+    free(buf);
+
+    filesystem->sb = sblock;
+    filesystem->disk_handle = handle;
+    *fs = filesystem;
+    return 0;
+}
+
+int myfs_unmount(myfs_t *fs) {
+    free(fs->sb);
+    free(fs);
     return 0;
 }

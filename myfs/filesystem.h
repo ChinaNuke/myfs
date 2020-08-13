@@ -8,11 +8,26 @@
 
 #define MYFS_ERROR -1
 
+enum blk_size {
+    BLK_SIZE_1K = 1024,
+    BLK_SIZE_2K = 2048,
+    BLK_SIZE_4K = 4096
+}
+
+typedef struct {
+    super_block_t *sb;
+    vdisk_handle_t disk_handle;
+} myfs_t;
+
 int myfs_format(vdisk_handle_t handle, uint16_t blocksize);
+
+int myfs_mount(vdisk_handle_t handle, myfs_t **fs);
+
+int myfs_unmount(myfs_t *fs);
 
 int myfs_touch();
 
-int myfs_mkdir();
+int myfs_mkdir(myfs_t *fs, char *path);
 
 int myfs_rmdir();
 
