@@ -2,53 +2,75 @@
 
 #include "block.h"
 
-uint32_t block_addr(vdisk_handle_t handle, inode_t* inode, uint16_t no,
-                    uint32_t blocksize) {
-    uint16_t addr_pre_block = blocksize / ADDR_SIZE;
-    // 0-11直接寻址
-    if (no < 12) return inode->direct_blocks[no];
-    //一次间址
-    //一个block可以存放 blocksize/addr_size 个blcok地址
-    else if (no >= 12 && no < (addr_pre_block + 12)) {
-        char buf[blocksize];
-        int res = block_read(handle, inode->single_indirect, blocksize, buf);
-        if (res == -1)
+int64_t locate_block(vdisk_handle_t handle, uint16_t blocksize, inode_t* inode,
+                     uint32_t i) {
+    const uint16_t addrs_per_block = blocksize / BLOCK_ADDR_LEN;
+    const uint32_t direct_max = 12;
+    const uint32_t single_max = direct_max + addrs_per_block;
+    const uint32_t double_max = single_max + addrs_per_block * addrs_per_block;
+    const uint32_t triple_max =
+        double_max + addrs_per_block * addrs_per_block * addrs_per_block;
+
+    // 直接寻址
+    if (i < direct_max) {
+        return inode->direct_blocks[i];
+    }
+
+    // 一次间址
+    if (i >= direct_max && i < single_max) {
+        uint32_t buf[addrs_per_block];
+        if (block_read(handle, inode->single_indirect, blocksize, buf) ==
+            BLOCK_ERROR) {
             return INODE_ERROR;
-        else
-            return buf[no];
-    } else if (no >= (addr_pre_block + 12) &&
-               no < (addr_pre_block * addr_pre_block + addr_pre_block + 12)) {
-        //先读二次间地址的直接地址块
-        char buf[blocksize];
-        int res = block_read(handle, inode->double_indirect, blocksize, buf);
-        if (res == -1) return INODE_ERROR;
+        }
+        return buf[i - direct_max];
+    }
 
-        //再读取直接地址块的第site个地址指向的block
-        int site = no / addr_pre_block;
-        char buf_w[blocksize];
-        int res_w = block_read(handle, site, blocksize, buf_w);
-        if (res_w == -1) return INODE_ERROR;
-        return buf_w[no % addr_pre_block];
-    } else {
+    // 两次间址
+    if (i >= single_max && i < double_max) {
+        uint32_t buf[addrs_per_block];
+
+        // 先读二次间地址的直接地址块
+        if (block_read(handle, inode->double_indirect, blocksize, buf) ==
+            BLOCK_ERROR) {
+            return INODE_ERROR;
+        }
+
+        // 再读取直接地址块的第site个地址指向的block
+        i = i - single_max;
+        uint32_t j = buf[i / addrs_per_block];
+        if (block_read(handle, j, blocksize, buf) == BLOCK_ERROR) {
+            return INODE_ERROR;
+        }
+        return buf[i % addrs_per_block];
+    }
+
+    // 三次间址
+    if (i >= double_max && i < triple_max) {
+        uint32_t buf[addrs_per_block];
+
         //先读三次间地址的直接地址块
-        char buf[blocksize];
-        int res = block_read(handle, inode->triple_indirect, blocksize, buf);
-        if (res == -1) return INODE_ERROR;
+        if (block_read(handle, inode->triple_indirect, blocksize, buf) ==
+            BLOCK_ERROR) {
+            return INODE_ERROR;
+        }
 
         //再读取直接地址块的第site个地址指向的block
-        int site = no / addr_pre_block;
-        char buf_w[blocksize];
-        int res_w = block_read(handle, site, blocksize, buf_w);
-        if (res_w == -1) return INODE_ERROR;
-        return buf_w[no % addr_pre_block];
+        i = i - double_max;
+        uint32_t j = buf[i / (addrs_per_block * addrs_per_block)];
+        if (block_read(handle, j, blocksize, buf) == BLOCK_ERROR) {
+            return INODE_ERROR;
+        }
 
         //再读取间接地址块的第n个地址指向的block
-        int n = (no % addr_pre_block) / addr_pre_block;
-        char buf_n[blocksize];
-        int res_n = block_read(handle, n, blocksize, buf_n);
-        if (res_n == -1) return INODE_ERROR;
-        return buf_n[(no % addr_pre_block) % addr_pre_block];
+        i = i % addrs_per_block;
+        uint32_t k = buf[i / (addrs_per_block)];
+        if (block_read(handle, k, blocksize, buf) == BLOCK_ERROR) {
+            return INODE_ERROR;
+        }
+        return buf[i % addrs_per_block];
     }
+    return INODE_ERROR;
 }
 
 uint16_t inode_alloc(vdisk_handle_t handle, uint16_t blocksize,

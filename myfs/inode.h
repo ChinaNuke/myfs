@@ -15,8 +15,8 @@
  * 一个 inode 大小固定为 128bytes
  */
 
-typedef uint32_t BLOCK_ADDR;
-#define ADDR_SIZE 4  //一个指向数据块的指针4个字节表示
+// typedef uint32_t BLOCK_ADDR;
+#define BLOCK_ADDR_LEN 4  //一个指向数据块的指针4个字节表示
 #define INODE_ERROR -1
 
 #define INODE_SIZE 128
@@ -40,13 +40,9 @@ typedef struct {
 typedef uint16_t inode_no_t;  // inode号(0-65535) 每个inode 128bytes 总占8M空间
 #define INODE_MAX_COUNT (UINT16_MAX - 1)
 
-/*
- * inode:文件的inode
- * no:文件所占的第no块
- * blocksize:规定的块大小
- */
-uint32_t block_addr(vdisk_handle_t handle, inode_t* inode, uint16_t no,
-                    uint32_t blocksize);
+/* 根据文件的第 i 个块找出这个块在磁盘上的块号 */
+int64_t locate_block(vdisk_handle_t handle, uint16_t blocksize, inode_t* inode,
+                     uint32_t i);
 
 uint16_t inode_alloc(vdisk_handle_t handle, uint16_t blocksize,
                      uint8_t* bitmap);
