@@ -4,7 +4,6 @@ project(Unix-Filesystem VERSION 0.2)
 
 # 添加库目录
 add_subdirectory(myfs)
-
 add_subdirectory(virtualdisk)
 # add_subdirectory(myshell)
 # add_subdirectory(utils)
@@ -29,7 +28,6 @@ target_include_directories(mysh PUBLIC "${PROJECT_SOURCE_DIR}")
 # 测试
 add_executable(testall ${TESTS_SRCS})
 target_link_libraries(testall myfs virtualdisk)
-# target_include_directories(testall PRIVATE "${PROJECT_SOURCE_DIR}")
 
 enable_testing()
 add_test(

@@ -97,3 +97,5 @@ int myfs_unmount(myfs_t *fs) {
     free(fs);
     return 0;
 }
+
+int myfs_mkdir(myfs_t *fs, char *path) { return 0; }

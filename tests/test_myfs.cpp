@@ -3,9 +3,9 @@
 #include "testtools.h"
 
 extern "C" {
-#include "myfs/block.h"
-#include "myfs/data_block.h"
-#include "myfs/filesystem.h"
+#include "block.h"
+#include "data_block.h"
+#include "filesystem.h"
 }
 
 TEST_CASE("Block All", "[myfs][block]") {
@@ -254,6 +254,60 @@ TEST_CASE("Filesystem Format", "[myfs][filesystem]") {
     CAPTURE(handle1);
 
     REQUIRE(myfs_format(handle1, blocksize) == 0);
+
+    vdisk_remove(handle1);
+    remove(vdisk1);
+}
+
+TEST_CASE("Locate block for inode", "[myfs][filesystem]") {
+    /*
+     * 测试混合索引寻址
+     */
+    const uint16_t blocksize = BLK_SIZE_1K; /* 简化问题，每个块容纳8个地址 */
+    const char vdisk1[] = "Testing/Temporary/vdisk_filesystem.fs";
+    tt_create_diskfile(vdisk1, 2000 * blocksize);
+    vdisk_handle_t handle1 = vdisk_add(vdisk1);
+    CAPTURE(handle1);
+
+    const uint16_t addrs_per_block = blocksize / BLOCK_ADDR_LEN;
+
+    /* 写入12个随机内容的直接索引 */
+    inode_t inode1;
+    srand((unsigned)time(NULL));
+    //    for (int i = 0; i < 12; i++) {
+    //        inode1.direct_blocks[i] = rand() % 2000;
+    //    }
+
+    /* 写入一次间址测试数据 */
+    uint32_t *buf = (uint32_t *)malloc(addrs_per_block * sizeof(uint32_t));
+    REQUIRE(addrs_per_block * sizeof(uint32_t) == blocksize);
+    for (uint16_t i = 0; i < addrs_per_block; i++) {
+        buf[i] = rand() % 2000;
+    }
+    inode1.single_indirect = rand() % 2000;
+    CAPTURE(inode1.single_indirect);
+    REQUIRE(block_write(handle1, blocksize, inode1.single_indirect, buf) == 0);
+
+    //    for (int i = 0; i < 12; i++) {
+    //        REQUIRE(locate_block(handle1, blocksize, &inode1, i) ==
+    //                inode1.direct_blocks[i]);
+    //    }
+
+    for (uint16_t i = 0; i < addrs_per_block; i++) {
+        CAPTURE(i);
+        REQUIRE(locate_block(handle1, blocksize, &inode1, 12 + i) == buf[i]);
+    }
+
+    //    uint32_t *buf_r = (uint32_t *)malloc(addrs_per_block *
+    //    sizeof(uint32_t)); REQUIRE(block_read(handle1, blocksize,
+    //    inode1.single_indirect, buf_r) == 0); for (uint16_t i = 0; i <
+    //    addrs_per_block; i++) {
+    //        CAPTURE(i);
+    //        REQUIRE(buf_r[i] == buf[i]);
+    //    }
+
+    free(buf);
+    // free(buf_r);
 
     vdisk_remove(handle1);
     remove(vdisk1);

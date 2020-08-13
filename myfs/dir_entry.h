@@ -10,28 +10,18 @@
  * 根据目录项可以唯一确定一个文件或者目录
  */
 
-#include "block.h"
-#include "inode.h"
-/*文件类型表 下标是file_type_id*/
-#define FILE_TYPE_COUNT 8
-char file_type[FILE_TYPE_COUNT][20] = {"未知",     "普通文件", "目录",
-                                       "字符设备", "块设备",   "命名管道",
-                                       "套接字",   "符号链接"};
-
 #define MAX_NAME_LEN 29  //文件名最大长度(单位：字符)
 #define DIR_ENTRY_SIZE 32
 #define DIR_ENTRY_ERROR -1
 
+enum filetypes { FTYPE_FILE, FTYPE_DIR, FTYPE_LINK };
+
 typedef struct dir_entry {
-    uint16_t inode_addr;  // inode号
     char name[29];
-    uint8_t file_type_id;  //文件类型id
+    uint16_t inode;     // inode号
+    uint8_t file_type;  // 文件类型id
 
 } dir_entry_t;
-
-// #define MAX_DIR_ENTRY_COUNT 10000
-
-// dir_entry_t dir_entry_list[MAX_DIR_ENTRY_COUNT]
 
 /*读目录项所在的blcok
  *block:目录项存储的起始块号
@@ -45,6 +35,9 @@ uint8_t read_dir_block(vdisk_handle_t handle, uint32_t blocksize,
  */
 int add_document(char* name, vdisk_handle_t handle, uint32_t blocksize,
                  uint16_t inode_id);
+
+int create_dentry(vdisk_handle_t handle, uint16_t blocksize, uint8_t* bitmap,
+                  dir_entry_t* parent, char* name);
 
 /*删除目录 */
 int del_document(char* name, vdisk_handle_t handle, uint32_t blocksize,

@@ -1,5 +1,7 @@
 #include "inode.h"
 
+#include <stdlib.h>
+
 #include "block.h"
 
 int64_t locate_block(vdisk_handle_t handle, uint16_t blocksize, inode_t* inode,
@@ -17,59 +19,64 @@ int64_t locate_block(vdisk_handle_t handle, uint16_t blocksize, inode_t* inode,
     }
 
     // 一次间址
-    if (i >= direct_max && i < single_max) {
-        uint32_t buf[addrs_per_block];
+    // if (i >= direct_max && i < single_max) {
+    if (1) {
+        uint32_t* buf = (uint32_t*)malloc(addrs_per_block * sizeof(uint32_t));
         if (block_read(handle, inode->single_indirect, blocksize, buf) ==
             BLOCK_ERROR) {
+            free(buf);
             return INODE_ERROR;
         }
-        return buf[i - direct_max];
+        uint32_t ret = buf[i - direct_max];
+        free(buf);
+        return ret;
     }
+    /*
+        // 两次间址
+        if (i >= single_max && i < double_max) {
+            uint32_t buf[addrs_per_block];
 
-    // 两次间址
-    if (i >= single_max && i < double_max) {
-        uint32_t buf[addrs_per_block];
+            // 先读二次间地址的直接地址块
+            if (block_read(handle, inode->double_indirect, blocksize, buf) ==
+                BLOCK_ERROR) {
+                return INODE_ERROR;
+            }
 
-        // 先读二次间地址的直接地址块
-        if (block_read(handle, inode->double_indirect, blocksize, buf) ==
-            BLOCK_ERROR) {
-            return INODE_ERROR;
+            // 再读取直接地址块的第site个地址指向的block
+            i = i - single_max;
+            uint32_t j = buf[i / addrs_per_block];
+            if (block_read(handle, j, blocksize, buf) == BLOCK_ERROR) {
+                return INODE_ERROR;
+            }
+            return buf[i % addrs_per_block];
         }
 
-        // 再读取直接地址块的第site个地址指向的block
-        i = i - single_max;
-        uint32_t j = buf[i / addrs_per_block];
-        if (block_read(handle, j, blocksize, buf) == BLOCK_ERROR) {
-            return INODE_ERROR;
-        }
-        return buf[i % addrs_per_block];
-    }
+        // 三次间址
+        if (i >= double_max && i < triple_max) {
+            uint32_t buf[addrs_per_block];
 
-    // 三次间址
-    if (i >= double_max && i < triple_max) {
-        uint32_t buf[addrs_per_block];
+            //先读三次间地址的直接地址块
+            if (block_read(handle, inode->triple_indirect, blocksize, buf) ==
+                BLOCK_ERROR) {
+                return INODE_ERROR;
+            }
 
-        //先读三次间地址的直接地址块
-        if (block_read(handle, inode->triple_indirect, blocksize, buf) ==
-            BLOCK_ERROR) {
-            return INODE_ERROR;
-        }
+            //再读取直接地址块的第site个地址指向的block
+            i = i - double_max;
+            uint32_t j = buf[i / (addrs_per_block * addrs_per_block)];
+            if (block_read(handle, j, blocksize, buf) == BLOCK_ERROR) {
+                return INODE_ERROR;
+            }
 
-        //再读取直接地址块的第site个地址指向的block
-        i = i - double_max;
-        uint32_t j = buf[i / (addrs_per_block * addrs_per_block)];
-        if (block_read(handle, j, blocksize, buf) == BLOCK_ERROR) {
-            return INODE_ERROR;
+            //再读取间接地址块的第n个地址指向的block
+            i = i % addrs_per_block;
+            uint32_t k = buf[i / (addrs_per_block)];
+            if (block_read(handle, k, blocksize, buf) == BLOCK_ERROR) {
+                return INODE_ERROR;
+            }
+            return buf[i % addrs_per_block];
         }
-
-        //再读取间接地址块的第n个地址指向的block
-        i = i % addrs_per_block;
-        uint32_t k = buf[i / (addrs_per_block)];
-        if (block_read(handle, k, blocksize, buf) == BLOCK_ERROR) {
-            return INODE_ERROR;
-        }
-        return buf[i % addrs_per_block];
-    }
+    */
     return INODE_ERROR;
 }
 
@@ -99,4 +106,15 @@ void inode_free(vdisk_handle_t handle, uint16_t inode, char* bitmap) {
     bitmap[i] &= ~(1 << j); /* 将对应的位清零（回收inode） */
 
     /* TODO(peng): 或许后面还要进行一些回收的其他操作 */
+}
+
+int64_t single_indirect(vdisk_handle_t handle, uint32_t block,
+                        uint16_t blocksize, uint32_t i) {
+    const uint16_t addrs_per_block = blocksize / BLOCK_ADDR_LEN;
+    uint32_t buf[addrs_per_block];
+
+    if (block_read(handle, block, blocksize, buf) == BLOCK_ERROR) {
+        return INODE_ERROR;
+    }
+    return buf[i];
 }

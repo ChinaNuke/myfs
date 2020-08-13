@@ -4,17 +4,10 @@
 #include "testtools.h"
 
 extern "C" {
-#include "utils/file_operation.h"
-#include "utils/myadd.h"
+#include "utils.h"
 }
 
-TEST_CASE("Example of sum", "[the_tag]") {
-    int a = 1, b = 2;
-    REQUIRE(myadd(a, b) == 3);
-    // REQUIRE(mywrongadd(a, b) == 3);
-}
-
-TEST_CASE("filesize", "[file_operations]") {
+TEST_CASE("filesize", "[utils]") {
     INFO("We are testing filesize!");
 
     FILE* fp = fopen("Testing/Temporary/newfile.fs", "w+");
@@ -24,7 +17,8 @@ TEST_CASE("filesize", "[file_operations]") {
     REQUIRE(ut_filesize(fp) == 12);
 
     char out[12];
-    fseek(fp, 0, SEEK_SET); /* 把文件指针重新指向开头，这一步一定要有！！ */
+    fseek(fp, 0, SEEK_SET); /* 把文件指针重新指向开头，这一步一定要有！！
+                             */
     fread(out, sizeof(char), 12, fp);
 
     REQUIRE(strcmp(out, str) == 0);

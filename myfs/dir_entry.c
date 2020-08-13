@@ -1,6 +1,9 @@
 #include "dir_entry.h"
 
 #include <string.h>
+
+#include "block.h"
+
 dir_entry_t* block_to_dir(vdisk_handle_t handle, uint32_t block,
                           uint32_t blocksize) {
     void* buf = calloc(1, blocksize);
@@ -24,8 +27,9 @@ int search_inode_addr(char* name, vdisk_handle_t handle, uint32_t block,
     /*通过文件名查找indoe号 */
 
     for (uint8_t i = 0; i < dir_num; i++) {
-        if (dir[i].inode_addr == 0) { /*blcok的一个目录项大小的空间可用，应该是NULL还是inode_addr为0
-                                         删除操作是将inode_addr置0*/
+        if (dir[i].inode_addr ==
+            0) { /*blcok的一个目录项大小的空间可用，应该是NULL还是inode_addr为0
+                    删除操作是将inode_addr置0*/
             if (*site == 0) *site = i;  //地址最小的blcok没存满 i这个位置是空的
         }
         if (strcmp(dir[i].name, name) == 0) {
@@ -75,8 +79,8 @@ int add_document(char* name, vdisk_handle_t handle, uint32_t blocksize,
          i++) { /*遍历indoe说明的数据块个数 */
 
         uint32_t block_id =
-            block_addr(handle, inode, i,
-                       blocksize);  //找到block_id,block_addr在inode.h文件
+            locate_block(handle, inode, i,
+                         blocksize);  //找到block_id,block_addr在inode.h文件
 
         if (search_inode_addr(name, handle, block_id, blocksize, &site) !=
             -1) {  //使用文件名找到了inode_id，添加的文件名重复了
@@ -133,8 +137,8 @@ int del_document(char* name, vdisk_handle_t handle, uint32_t blocksize,
          i++) { /*遍历indoe说明的数据块个数 */
 
         uint32_t block_id =
-            block_addr(handle, inode, i,
-                       blocksize);  //找到block_id,block_addr在inode.h文件
+            locate_block(handle, inode, i,
+                         blocksize);  //找到block_id,block_addr在inode.h文件
 
         if (search_inode_addr(name, handle, block_id, blocksize, &site) !=
             -1) {  //使用文件名找到了inode_id，要删除的文件名匹配到了
@@ -154,4 +158,24 @@ int del_document(char* name, vdisk_handle_t handle, uint32_t blocksize,
         }
     }
     return inode_id;
+}
+
+int create_dentry(vdisk_handle_t handle, uint16_t blocksize, uint8_t* bitmap,
+                  dir_entry_t* parent, char* name, uint8_t file_type) {
+    /* 首先搜索其父目录下是否已有同名的项 */
+    if (parent != NULL) {
+        uint16_t p_inode = parent->inode;
+    }
+
+    uint16_t child_inode = inode_alloc(handle, blocksize, bitmap);
+    dir_entry_t child_dentry;
+
+    strcpy(child_dentry.name, name);
+    child_dentry.inode = child_inode;
+    child_dentry.file_type = file_type;
+
+    if (parent != NULL) {
+        /* 把这个目录项加到父目录的block中
+         * 在当前目录创建指向父目录的目录项 */
+    }
 }

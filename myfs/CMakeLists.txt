@@ -1,5 +1,7 @@
 aux_source_directory(. DIR_SRCS)
 
+list(REMOVE_ITEM DIR_SRCS ./dir_entry.c)
+
 add_library(myfs ${DIR_SRCS})
 
 target_include_directories(myfs
