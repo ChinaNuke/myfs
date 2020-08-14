@@ -360,6 +360,7 @@ TEST_CASE("Locate block for inode", "[myfs][filesystem]") {
         for (uint16_t i = 0; i < addrs_per_block; i++) {
             buf_3[i] = rand() % 2000;
         }
+//        REQUIRE(block_write(handle1, blocksize, buf_2[0], buf_3) == 0);
         for (int i = 0; i < addrs_per_block; i++) {
             REQUIRE(block_write(handle1, blocksize, buf_2[i], buf_3) == 0);
         }
@@ -367,7 +368,7 @@ TEST_CASE("Locate block for inode", "[myfs][filesystem]") {
         for (uint32_t i = 0; i < addrs_per_block * addrs_per_block; i++) {
             CAPTURE(i);
             REQUIRE(locate_block(handle1, blocksize, &inode1,
-                                 12 + addrs_per_block * addrs_per_block + i) ==
+                                 12 + addrs_per_block+ addrs_per_block * addrs_per_block + i) ==
                     buf_3[i % addrs_per_block]);
         }
 
