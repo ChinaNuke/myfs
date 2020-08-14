@@ -5,6 +5,7 @@
 extern "C" {
 #include "block.h"
 #include "data_block.h"
+#include "dir_entry.h"
 #include "filesystem.h"
 }
 
@@ -255,8 +256,40 @@ TEST_CASE("Filesystem Format", "[myfs][filesystem]") {
 
     REQUIRE(myfs_format(handle1, blocksize) == 0);
 
+    /* 检查 superblock 区域 */
+    void *buf = malloc(blocksize);
+    block_read(handle1, blocksize, 0, buf);
     super_block_t sb;
-    block_read();
+    memcpy(&sb, buf, sizeof(super_block_t));
+    REQUIRE(sb.block_size == blocksize);
+    REQUIRE(sb.inode_size == INODE_SIZE);
+    REQUIRE(sb.inodes_count == 8 * blocksize);
+    REQUIRE(sb.free_inodes_count == 8 * blocksize - 1);
+    REQUIRE(sb.total_size == 2000 * blocksize);
+    free(buf);
+
+    /* 检查 bitmap 区域 */
+    uint8_t *bitmap = (uint8_t *)malloc(blocksize);
+    block_read(handle1, blocksize, 1, bitmap);
+    REQUIRE(bitmap[0] == 0x01);
+    for (uint16_t i = 1; i < blocksize / 8; i++) {
+        REQUIRE(bitmap[i] == 0x00);
+    }
+    free(bitmap);
+
+    /* 检查 inode table 区域 */
+    buf = malloc(blocksize);
+    block_read(handle1, blocksize, 2, buf);
+    inode_t inode;
+    memcpy(&inode, buf, sizeof(inode_t));
+    REQUIRE(inode.uid == 0);
+    REQUIRE(inode.mode == FTYPE_DIR);
+    REQUIRE(inode.blocks == 1);
+    REQUIRE(inode.atime == 0);
+    REQUIRE(inode.ctime == 0);
+    REQUIRE(inode.block == 3);
+
+    free(buf);
 
     vdisk_remove(handle1);
     remove(vdisk1);

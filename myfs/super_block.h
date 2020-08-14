@@ -23,7 +23,7 @@ typedef struct {
     uint64_t total_size; /* 文件系统大小（字节） */
     // uint32_t inode_bitmap;     /* inode bitmap 的块号*/
     // uint32_t inode_table;      /* inode table 的块号 */
-    block_stack_t first_group_stack; /* 第一个空闲盘块号栈 */
+    block_stack_t group_stack; /* 第一个空闲盘块号栈 */
 
 } super_block_t;
 

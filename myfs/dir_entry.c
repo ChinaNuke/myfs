@@ -166,9 +166,8 @@
 //    return inode_id;
 //}
 
-int create_dentry(vdisk_handle_t handle, uint16_t blocksize, uint8_t* bitmap,
-                  block_stack_t* stack, dir_entry_t* parent, char* name,
-                  uint8_t file_type) {
+int create_dentry(vdisk_handle_t handle, super_block_t* sb, uint8_t* bitmap,
+                  dir_entry_t* parent, char* name, uint8_t file_type) {
     /* 首先搜索其父目录下是否已有同名的项
      * 同时将找到的第一个空的dentry位置记下来
      */
@@ -176,17 +175,18 @@ int create_dentry(vdisk_handle_t handle, uint16_t blocksize, uint8_t* bitmap,
     uint16_t free_dentry_offset = 0;
 
     if (parent != NULL) {
-        inode_t* p_inode = load_inode(handle, blocksize, parent->inode);
+        inode_t* p_inode = load_inode(handle, sb->block_size, parent->inode);
 
-        assert(blocksize % sizeof(dir_entry_t) == 0);
-        dir_entry_t* dentries = malloc(blocksize);
+        assert(sb->block_size % sizeof(dir_entry_t) == 0);
+        dir_entry_t* dentries = malloc(sb->block_size);
 
         /* 每次读入一个block，遍历block中的dentries */
         for (uint32_t block = 0; block < p_inode->blocks; block++) {
             uint32_t block_addr =
-                locate_block(handle, blocksize, p_inode, block);
-            block_read(handle, blocksize, block_addr, dentries);
-            for (uint16_t i = 0; i < blocksize / sizeof(dir_entry_t); i++) {
+                locate_block(handle, sb->block_size, p_inode, block);
+            block_read(handle, sb->block_size, block_addr, dentries);
+            for (uint16_t i = 0; i < sb->block_size / sizeof(dir_entry_t);
+                 i++) {
                 if (strcmp(dentries[i].name, name) == 0) {
                     free(dentries);
                     return -1;
@@ -201,21 +201,23 @@ int create_dentry(vdisk_handle_t handle, uint16_t blocksize, uint8_t* bitmap,
     }
 
     /* 分配一个空闲盘块 */
-    uint32_t block_no = data_block_alloc(handle, blocksize, stack);
+    uint32_t block_no =
+        data_block_alloc(handle, sb->block_size, &(sb->group_stack));
 
     /* 信息填入inode */
     inode_t c_inode;
     c_inode.uid = 0;
     c_inode.mode = file_type;
-    c_inode.size = blocksize;
+    c_inode.size = sb->block_size;
     c_inode.atime = c_inode.ctime = c_inode.mtime = 0; /* TODO */
     c_inode.blocks = 1;
     c_inode.links_count = 1;
     c_inode.block = block_no;
     // inode_append_block(handle, blocksize, &c_inode); /* 把盘块添加给inode */
 
-    uint16_t c_inode_no = inode_alloc(handle, blocksize, bitmap);
-    dump_inode(handle, blocksize, c_inode_no, &c_inode); /* inode写入磁盘 */
+    uint16_t c_inode_no = inode_alloc(sb, bitmap);
+    dump_inode(handle, sb->block_size, c_inode_no,
+               &c_inode); /* inode写入磁盘 */
 
     /* 信息填入目录项 */
     dir_entry_t c_dentry;
@@ -226,16 +228,16 @@ int create_dentry(vdisk_handle_t handle, uint16_t blocksize, uint8_t* bitmap,
     if (parent != NULL) {
         /* 把这个目录项加到父目录的block中，直接利用最开始找到的空闲dentry位置
          */
-        dir_entry_t* dentries = (dir_entry_t*)malloc(blocksize);
-        block_read(handle, blocksize, free_dentry_block_at, dentries);
+        dir_entry_t* dentries = (dir_entry_t*)malloc(sb->block_size);
+        block_read(handle, sb->block_size, free_dentry_block_at, dentries);
         memcpy(&dentries[free_dentry_offset], &c_dentry, sizeof(dir_entry_t));
-        block_write(handle, blocksize, free_dentry_block_at, dentries);
+        block_write(handle, sb->block_size, free_dentry_block_at, dentries);
         free(dentries);
     }
 
     /* 为新建目录添加两个目录项：当前目录（.）和父目录（..） */
     if (file_type == FTYPE_DIR) {
-        dir_entry_t* init_dentries = (dir_entry_t*)malloc(blocksize);
+        dir_entry_t* init_dentries = (dir_entry_t*)malloc(sb->block_size);
         strcpy(init_dentries[0].name, ".");
         init_dentries[0].inode = c_inode_no;
         init_dentries[0].file_type = FTYPE_DIR;
@@ -244,7 +246,7 @@ int create_dentry(vdisk_handle_t handle, uint16_t blocksize, uint8_t* bitmap,
             init_dentries[1].inode = parent->inode;
             init_dentries[1].file_type = FTYPE_DIR;
         }
-        block_write(handle, blocksize, block_no, init_dentries);
+        block_write(handle, sb->block_size, block_no, init_dentries);
         free(init_dentries);
     }
 

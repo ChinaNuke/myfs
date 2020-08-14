@@ -4,6 +4,7 @@
 #include <stddef.h>
 #include <stdint.h>
 
+#include "super_block.h"
 #include "virtual_disk.h"
 
 /*
@@ -44,9 +45,8 @@ typedef uint16_t inode_no_t;  // inode号(0-65535) 每个inode 128bytes 总占8M
 int64_t locate_block(vdisk_handle_t handle, uint16_t blocksize, inode_t* inode,
                      uint32_t i);
 
-uint16_t inode_alloc(vdisk_handle_t handle, uint16_t blocksize,
-                     uint8_t* bitmap);
-void inode_free(vdisk_handle_t handle, uint16_t inode, char* bitmap);
+uint16_t inode_alloc(super_block_t* sb, uint8_t* bitmap);
+void inode_free(super_block_t* sb, uint8_t* bitmap, uint16_t inode);
 
 inode_t* load_inode(vdisk_handle_t handle, uint16_t blocksize, uint16_t inode);
 

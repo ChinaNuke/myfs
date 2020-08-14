@@ -37,9 +37,8 @@ uint8_t read_dir_block(vdisk_handle_t handle, uint32_t blocksize,
 int add_document(char* name, vdisk_handle_t handle, uint32_t blocksize,
                  uint16_t inode_id);
 
-int create_dentry(vdisk_handle_t handle, uint16_t blocksize, uint8_t* bitmap,
-                  block_stack_t* stack, dir_entry_t* parent, char* name,
-                  uint8_t file_type);
+int create_dentry(vdisk_handle_t handle, super_block_t* sb, uint8_t* bitmap,
+                  dir_entry_t* parent, char* name, uint8_t file_type);
 
 /*删除目录 */
 int del_document(char* name, vdisk_handle_t handle, uint32_t blocksize,

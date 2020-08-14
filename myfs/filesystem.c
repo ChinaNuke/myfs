@@ -38,34 +38,30 @@ int myfs_format(vdisk_handle_t handle, uint16_t blocksize) {
     }
     free(empty_block);
 
-    /* 初始化 data block 区 */
-
+    /* 初始化 super block */
     super_block_t sb; /* 写在前面因为要用它的 first_group_stack */
+    sb.block_size = blocksize;
+    sb.inode_size = INODE_SIZE;
+    sb.inodes_count = sb.free_inodes_count = inodes_count;
+    sb.total_size = total_blocks * blocksize;
+
+    /* 初始化 data block 区 */
     uint32_t data_blocks_start = 2 + inode_blocks;
     uint32_t data_blocks_count = total_blocks - data_blocks_start;
     if (data_blocks_init(handle, blocksize, data_blocks_start,
-                         data_blocks_count,
-                         &(sb.first_group_stack)) == BLOCK_ERROR) {
+                         data_blocks_count, &(sb.group_stack)) == BLOCK_ERROR) {
         return MYFS_ERROR;
     }
 
     /* 建立根目录 */
     uint8_t *bitmap = calloc(1, blocksize);
-    create_dentry(handle, blocksize, bitmap, &(sb.first_group_stack), NULL, "",
-                  FTYPE_DIR);
+    create_dentry(handle, &sb, bitmap, NULL, "", FTYPE_DIR);
     block_write(handle, blocksize, 1, bitmap); /* 写入 bitmap */
     free(bitmap);
 
-    /* 初始化 super block */
+    sb.blocks_count = sb.free_blocks_count = data_blocks_count;
 
-    sb.block_size = blocksize;
-    sb.inode_size = INODE_SIZE;
-    sb.blocks_count = data_blocks_count;
-    sb.inodes_count = inodes_count;
-    sb.free_blocks_count = data_blocks_count;
-    sb.free_inodes_count = inodes_count;
     // sb.first_data_block = 1;
-    sb.total_size = total_blocks * blocksize;
 
     void *buf = calloc(1, blocksize);
     memcpy(buf, &sb, sizeof(super_block_t));

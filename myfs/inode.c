@@ -5,7 +5,6 @@
 #include <string.h>
 
 #include "block.h"
-#include "super_block.h"
 
 int64_t locate_block(vdisk_handle_t handle, uint16_t blocksize, inode_t* inode,
                      uint32_t i) {
@@ -84,18 +83,16 @@ int64_t locate_block(vdisk_handle_t handle, uint16_t blocksize, inode_t* inode,
     return INODE_ERROR;
 }
 
-uint16_t inode_alloc(vdisk_handle_t handle, uint16_t blocksize,
-                     uint8_t* bitmap) {
-    /* TODO(peng): 这里实际上可以利用superblock上的信息进行优化，
-     * 不必要遍历整个block */
-
-    for (uint16_t i = 0; i < blocksize; i++) { /* 遍历block上每个字节 */
+uint16_t inode_alloc(super_block_t* sb, uint8_t* bitmap) {
+    for (uint16_t i = 0; i < sb->inodes_count / 8;
+         i++) {                  /* 遍历block上每个字节 */
         if (bitmap[i] != 0xFF) { /* 有字节含有 0 位（即有空闲） */
             /* 遍历每一位找到首个为 0 的位，将其置 1（分配出去）
              * 计算并返回该位对应的 inode 号 */
             for (uint8_t j = 0; j < 8; j++) {
                 if ((bitmap[i] & (1 << j)) == 0) {
                     bitmap[i] |= (1 << j);
+                    sb->free_inodes_count--;
                     return 8 * i + j;
                 }
             }
@@ -104,11 +101,11 @@ uint16_t inode_alloc(vdisk_handle_t handle, uint16_t blocksize,
     return INODE_ERROR;
 }
 
-void inode_free(vdisk_handle_t handle, uint16_t inode, char* bitmap) {
+void inode_free(super_block_t* sb, uint8_t* bitmap, uint16_t inode) {
     uint16_t i = inode / 8; /* inode 所对应 bitmap 中哪个字节 */
     uint8_t j = inode % 8;  /* 字节中的哪一位 */
     bitmap[i] &= ~(1 << j); /* 将对应的位清零（回收inode） */
-
+    sb->free_inodes_count++;
     /* TODO(peng): 或许后面还要进行一些回收的其他操作 */
 }
 
