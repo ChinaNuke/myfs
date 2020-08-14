@@ -2,8 +2,10 @@
 
 #include <assert.h>
 #include <stdlib.h>
+#include <string.h>
 
 #include "block.h"
+#include "super_block.h"
 
 int64_t locate_block(vdisk_handle_t handle, uint16_t blocksize, inode_t* inode,
                      uint32_t i) {
@@ -110,13 +112,33 @@ void inode_free(vdisk_handle_t handle, uint16_t inode, char* bitmap) {
     /* TODO(peng): 或许后面还要进行一些回收的其他操作 */
 }
 
-int64_t single_indirect(vdisk_handle_t handle, uint32_t block,
-                        uint16_t blocksize, uint32_t i) {
-    const uint16_t addrs_per_block = blocksize / BLOCK_ADDR_LEN;
-    uint32_t buf[addrs_per_block];
+inode_t* load_inode(vdisk_handle_t handle, uint16_t blocksize, uint16_t inode) {
+    uint16_t inodes_per_block = blocksize / INODE_SIZE;
+    uint32_t at_block = inode / inodes_per_block + 2; /* 确定inode所在的块号 */
+    uint16_t offset = inode % inodes_per_block; /* inode在块内的偏移 */
 
-    if (block_read(handle, block, blocksize, buf) == BLOCK_ERROR) {
-        return INODE_ERROR;
-    }
-    return buf[i];
+    inode_t* one_inode = malloc(sizeof(inode_t));
+    void* buf = malloc(blocksize * sizeof(char));
+
+    block_read(handle, blocksize, at_block, buf);
+    memcpy(one_inode, buf + offset * INODE_SIZE, sizeof(inode_t));
+
+    free(buf);
+    return one_inode;
+}
+
+int dump_inode(vdisk_handle_t handle, uint16_t blocksize, uint16_t inode,
+               inode_t* one_inode) {
+    uint16_t inodes_per_block = blocksize / INODE_SIZE;
+    uint32_t at_block = inode / inodes_per_block + 2; /* 确定inode所在的块号 */
+    uint16_t offset = inode % inodes_per_block; /* inode在块内的偏移 */
+
+    void* buf = malloc(blocksize * sizeof(char));
+    block_read(handle, blocksize, at_block, buf);
+    memcpy(buf + offset * INODE_SIZE, one_inode, sizeof(inode_t));
+    block_write(handle, blocksize, at_block, buf);
+
+    free(buf);
+    // free(one_inode);
+    return 0;
 }

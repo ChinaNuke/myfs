@@ -48,4 +48,14 @@ uint16_t inode_alloc(vdisk_handle_t handle, uint16_t blocksize,
                      uint8_t* bitmap);
 void inode_free(vdisk_handle_t handle, uint16_t inode, char* bitmap);
 
+inode_t* load_inode(vdisk_handle_t handle, uint16_t blocksize, uint16_t inode);
+
+int dump_inode(vdisk_handle_t handle, uint16_t blocksize, uint16_t inode,
+               inode_t* one_inode);
+
+int inode_append_block(vdisk_handle_t handle, uint16_t blocksize,
+                       inode_t* one_inode);
+
+int inode_reduce_block(vdisk_handle_t handle);
+
 #endif
