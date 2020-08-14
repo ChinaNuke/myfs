@@ -3,6 +3,8 @@
 #include <stdlib.h>
 #include <string.h>
 
+#include "dir_entry.h"
+
 /* 除法向上取整 */
 #define CEIL_DIVIDE(A, B) (((A) + (B)-1) / (B))
 
@@ -17,13 +19,12 @@ int myfs_format(vdisk_handle_t handle, uint16_t blocksize) {
     uint32_t device_size = vdisk_get_size(handle); /* 设备大小（字节） */
     uint32_t total_blocks = device_size / blocksize; /* 多出来的不使用 */
 
-    /* 初始化 inode bitmap 区和 inode table 区
+    /* 初始化 inode table 区
      * 默认 inode bitmap 固定占一个 block，即紧随 superblock 之后的 1 号块
      * 在 blocksize 为 4096 的情况下，最多支持 32768 个文件
      */
 
     void *empty_block = calloc(1, blocksize);
-    block_write(handle, blocksize, 1, empty_block); /* 写入 bitmap */
 
     uint16_t inodes_count = 1 * blocksize * 8;
     uint32_t inodes_size = inodes_count * INODE_SIZE;
@@ -49,8 +50,11 @@ int myfs_format(vdisk_handle_t handle, uint16_t blocksize) {
     }
 
     /* 建立根目录 */
-    uint32_t root_block =
-        data_block_alloc(handle, blocksize, &(sb.first_group_stack));
+    uint8_t *bitmap = calloc(1, blocksize);
+    create_dentry(handle, blocksize, bitmap, &(sb.first_group_stack), NULL, "",
+                  FTYPE_DIR);
+    block_write(handle, blocksize, 1, bitmap); /* 写入 bitmap */
+    free(bitmap);
 
     /* 初始化 super block */
 

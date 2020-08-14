@@ -229,8 +229,26 @@ int create_dentry(vdisk_handle_t handle, uint16_t blocksize, uint8_t* bitmap,
         dir_entry_t* dentries = (dir_entry_t*)malloc(blocksize);
         block_read(handle, blocksize, free_dentry_block_at, dentries);
         memcpy(&dentries[free_dentry_offset], &c_dentry, sizeof(dir_entry_t));
+        block_write(handle, blocksize, free_dentry_block_at, dentries);
         free(dentries);
     }
+
+    /* 为新建目录添加两个目录项：当前目录（.）和父目录（..） */
+    if (file_type == FTYPE_DIR) {
+        dir_entry_t* init_dentries = (dir_entry_t*)malloc(blocksize);
+        strcpy(init_dentries[0].name, ".");
+        init_dentries[0].inode = c_inode_no;
+        init_dentries[0].file_type = FTYPE_DIR;
+        if (parent != NULL) {
+            strcpy(init_dentries[1].name, "..");
+            init_dentries[1].inode = parent->inode;
+            init_dentries[1].file_type = FTYPE_DIR;
+        }
+        block_write(handle, blocksize, block_no, init_dentries);
+        free(init_dentries);
+    }
+
+    return 0;
 }
 
 // dir_entry_t* find_dentry(vdisk_handle_t handle, uint32_t blocksize,

@@ -247,7 +247,7 @@ TEST_CASE("Filesystem Format", "[myfs][filesystem]") {
     /*
      * 测试 myfs_format() 的功能
      */
-    const uint16_t blocksize = 4096;
+    const uint16_t blocksize = BLK_SIZE_4K;
     const char vdisk1[] = "Testing/Temporary/vdisk_filesystem.fs";
     tt_create_diskfile(vdisk1, 2000 * blocksize); /* 8MB */
     vdisk_handle_t handle1 = vdisk_add(vdisk1);
@@ -255,11 +255,14 @@ TEST_CASE("Filesystem Format", "[myfs][filesystem]") {
 
     REQUIRE(myfs_format(handle1, blocksize) == 0);
 
+    super_block_t sb;
+    block_read();
+
     vdisk_remove(handle1);
     remove(vdisk1);
 }
 
-TEST_CASE("Locate block for inode", "[myfs][filesystem]") {
+TEST_CASE("Locate block for inode", "[myfs][inode]") {
     /*
      * 测试混合索引寻址
      */
@@ -360,7 +363,8 @@ TEST_CASE("Locate block for inode", "[myfs][filesystem]") {
         for (uint16_t i = 0; i < addrs_per_block; i++) {
             buf_3[i] = rand() % 2000;
         }
-//        REQUIRE(block_write(handle1, blocksize, buf_2[0], buf_3) == 0);
+        //        REQUIRE(block_write(handle1, blocksize, buf_2[0], buf_3) ==
+        //        0);
         for (int i = 0; i < addrs_per_block; i++) {
             REQUIRE(block_write(handle1, blocksize, buf_2[i], buf_3) == 0);
         }
@@ -368,7 +372,8 @@ TEST_CASE("Locate block for inode", "[myfs][filesystem]") {
         for (uint32_t i = 0; i < addrs_per_block * addrs_per_block; i++) {
             CAPTURE(i);
             REQUIRE(locate_block(handle1, blocksize, &inode1,
-                                 12 + addrs_per_block+ addrs_per_block * addrs_per_block + i) ==
+                                 12 + addrs_per_block +
+                                     addrs_per_block * addrs_per_block + i) ==
                     buf_3[i % addrs_per_block]);
         }
 
@@ -380,3 +385,5 @@ TEST_CASE("Locate block for inode", "[myfs][filesystem]") {
     vdisk_remove(handle1);
     remove(vdisk1);
 }
+
+TEST_CASE("Inode dump and load", "[myfs][inode]") {}
