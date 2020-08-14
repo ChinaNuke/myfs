@@ -8,14 +8,14 @@
  * 对虚拟的磁盘文件进行读写等操作
  * 以扇区为操作单位，每个扇区512个字节
  *
- * 扇区号32位，最大支持2TB的硬盘
+ * 扇区号64位
  *
  */
 
 #define SECTOR_SIZE 512
-#define VDISK_ERROR -1
+// #define VDISK_ERROR -1
 
-typedef int16_t vdisk_handle_t; /* 虚拟磁盘句柄 */
+typedef int32_t vdisk_handle_t; /* 虚拟磁盘句柄 */
 
 /* 将一个文件添加为虚拟磁盘 */
 vdisk_handle_t vdisk_add(const char* filepath);
@@ -24,14 +24,18 @@ vdisk_handle_t vdisk_add(const char* filepath);
 int vdisk_remove(vdisk_handle_t handle);
 
 /* 从虚拟磁盘读入数据（以扇区为单位） */
-int64_t vdisk_read(vdisk_handle_t handle, uint32_t sector, uint32_t count,
-                   void* buf);
+uint64_t vdisk_read(vdisk_handle_t handle, uint64_t sector, uint64_t count,
+                    void* buf);
 
 /* 向虚拟磁盘写入数据（以扇区为单位） */
-int64_t vdisk_write(vdisk_handle_t handle, uint32_t sector, uint32_t count,
-                    const void* buf);
+uint64_t vdisk_write(vdisk_handle_t handle, uint64_t sector, uint64_t count,
+                     const void* buf);
 
 /* 获取虚拟磁盘的大小 */
 uint64_t vdisk_get_size(vdisk_handle_t handle);
+
+int vdisk_error(vdisk_handle_t handle);
+
+void vdisk_clearerr(vdisk_handle_t handle);
 
 #endif

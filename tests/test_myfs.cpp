@@ -58,7 +58,7 @@ TEST_CASE("Stack Dump and Load", "[myfs][group_stack]") {
     const char vdisk1[] = "Testing/Temporary/vdisk_stack.fs";
     tt_create_diskfile(vdisk1, 4 * blocksize);
     vdisk_handle_t handle1 = vdisk_add(vdisk1);
-    REQUIRE(handle1 != VDISK_ERROR);
+    REQUIRE(handle1 != -1);
 
     /* 生成60个随机块地址 */
     uint32_t buf_w[60];
@@ -263,51 +263,118 @@ TEST_CASE("Locate block for inode", "[myfs][filesystem]") {
     /*
      * 测试混合索引寻址
      */
-    const uint16_t blocksize = BLK_SIZE_1K; /* 简化问题，每个块容纳8个地址 */
+    const uint16_t blocksize = BLK_SIZE_1K;
     const char vdisk1[] = "Testing/Temporary/vdisk_filesystem.fs";
-    tt_create_diskfile(vdisk1, 2000 * blocksize);
+    const uint32_t total_blocks = 2000;
+    tt_create_diskfile(vdisk1, total_blocks * blocksize);
     vdisk_handle_t handle1 = vdisk_add(vdisk1);
     CAPTURE(handle1);
+    REQUIRE(vdisk_error(handle1) == 0);
 
     const uint16_t addrs_per_block = blocksize / BLOCK_ADDR_LEN;
 
-    /* 写入12个随机内容的直接索引 */
     inode_t inode1;
     srand((unsigned)time(NULL));
-    //    for (int i = 0; i < 12; i++) {
-    //        inode1.direct_blocks[i] = rand() % 2000;
-    //    }
 
-    /* 写入一次间址测试数据 */
-    uint32_t *buf = (uint32_t *)malloc(addrs_per_block * sizeof(uint32_t));
-    REQUIRE(addrs_per_block * sizeof(uint32_t) == blocksize);
-    for (uint16_t i = 0; i < addrs_per_block; i++) {
-        buf[i] = rand() % 2000;
-    }
-    inode1.single_indirect = rand() % 2000;
-    CAPTURE(inode1.single_indirect);
-    REQUIRE(block_write(handle1, blocksize, inode1.single_indirect, buf) == 0);
-
-    //    for (int i = 0; i < 12; i++) {
-    //        REQUIRE(locate_block(handle1, blocksize, &inode1, i) ==
-    //                inode1.direct_blocks[i]);
-    //    }
-
-    for (uint16_t i = 0; i < addrs_per_block; i++) {
-        CAPTURE(i);
-        REQUIRE(locate_block(handle1, blocksize, &inode1, 12 + i) == buf[i]);
+    SECTION("direct") {
+        for (int i = 0; i < 12; i++) {
+            inode1.direct_blocks[i] = rand() % total_blocks;
+        }
+        for (int i = 0; i < 12; i++) {
+            REQUIRE(locate_block(handle1, blocksize, &inode1, i) ==
+                    inode1.direct_blocks[i]);
+        }
     }
 
-    //    uint32_t *buf_r = (uint32_t *)malloc(addrs_per_block *
-    //    sizeof(uint32_t)); REQUIRE(block_read(handle1, blocksize,
-    //    inode1.single_indirect, buf_r) == 0); for (uint16_t i = 0; i <
-    //    addrs_per_block; i++) {
-    //        CAPTURE(i);
-    //        REQUIRE(buf_r[i] == buf[i]);
-    //    }
+    SECTION("single indirect") {
+        uint32_t *buf = (uint32_t *)malloc(addrs_per_block * sizeof(uint32_t));
+        for (uint16_t i = 0; i < addrs_per_block; i++) {
+            buf[i] = rand() % total_blocks;
+        }
+        inode1.single_indirect = rand() % total_blocks;
+        CAPTURE(inode1.single_indirect);
+        REQUIRE(block_write(handle1, blocksize, inode1.single_indirect, buf) ==
+                0);
 
-    free(buf);
-    // free(buf_r);
+        for (uint16_t i = 0; i < addrs_per_block; i++) {
+            CAPTURE(i);
+            REQUIRE(locate_block(handle1, blocksize, &inode1, 12 + i) ==
+                    buf[i]);
+        }
+        free(buf);
+    }
+
+    SECTION("double indirect") {
+        /* 一次间址块放在前半的blocks，以免被二次间址块覆盖 */
+        inode1.double_indirect = rand() % 1000;
+        CAPTURE(inode1.double_indirect);
+        uint32_t *buf_1 =
+            (uint32_t *)malloc(addrs_per_block * sizeof(uint32_t));
+        for (uint16_t i = 0; i < addrs_per_block; i++) {
+            /* 后半部分 */
+            buf_1[i] = rand() % 1000 + 1000;
+        }
+        REQUIRE(block_write(handle1, blocksize, inode1.double_indirect,
+                            buf_1) == 0);
+
+        uint32_t *buf_2 =
+            (uint32_t *)malloc(addrs_per_block * sizeof(uint32_t));
+        for (uint16_t i = 0; i < addrs_per_block; i++) {
+            buf_2[i] = rand() % 2000;
+        }
+        for (int i = 0; i < 50; i++) { /* 只对50个进行间址，减小测试量 */
+            REQUIRE(block_write(handle1, blocksize, buf_1[i], buf_2) == 0);
+        }
+
+        for (uint32_t i = 0; i < 50 * addrs_per_block; i++) {
+            CAPTURE(i);
+            REQUIRE(locate_block(handle1, blocksize, &inode1,
+                                 12 + addrs_per_block + i) ==
+                    buf_2[i % addrs_per_block]);
+        }
+
+        free(buf_1);
+        free(buf_2);
+    }
+
+    SECTION("triple indirect") {
+        inode1.triple_indirect = rand() % 600;
+        CAPTURE(inode1.triple_indirect);
+        uint32_t *buf_1 =
+            (uint32_t *)malloc(addrs_per_block * sizeof(uint32_t));
+        for (uint16_t i = 0; i < addrs_per_block; i++) {
+            buf_1[i] = rand() % 600 + 600;
+        }
+        REQUIRE(block_write(handle1, blocksize, inode1.triple_indirect,
+                            buf_1) == 0);
+
+        uint32_t *buf_2 =
+            (uint32_t *)malloc(addrs_per_block * sizeof(uint32_t));
+        for (uint16_t i = 0; i < addrs_per_block; i++) {
+            buf_2[i] = rand() % 600 + 1200;
+        }
+        REQUIRE(block_write(handle1, blocksize, buf_1[0], buf_2) == 0);
+
+        uint32_t *buf_3 =
+            (uint32_t *)malloc(addrs_per_block * sizeof(uint32_t));
+        for (uint16_t i = 0; i < addrs_per_block; i++) {
+            buf_3[i] = rand() % 2000;
+        }
+        for (int i = 0; i < addrs_per_block; i++) {
+            REQUIRE(block_write(handle1, blocksize, buf_2[i], buf_3) == 0);
+        }
+
+        for (uint32_t i = 0; i < addrs_per_block * addrs_per_block; i++) {
+            CAPTURE(i);
+            REQUIRE(locate_block(handle1, blocksize, &inode1,
+                                 12 + addrs_per_block * addrs_per_block + i) ==
+                    buf_3[i % addrs_per_block]);
+        }
+
+        free(buf_1);
+        free(buf_2);
+        free(buf_3);
+    }
 
     vdisk_remove(handle1);
     remove(vdisk1);

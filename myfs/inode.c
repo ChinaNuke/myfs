@@ -1,5 +1,6 @@
 #include "inode.h"
 
+#include <assert.h>
 #include <stdlib.h>
 
 #include "block.h"
@@ -13,16 +14,17 @@ int64_t locate_block(vdisk_handle_t handle, uint16_t blocksize, inode_t* inode,
     const uint32_t triple_max =
         double_max + addrs_per_block * addrs_per_block * addrs_per_block;
 
+    assert(blocksize == 1024);
+
     // 直接寻址
     if (i < direct_max) {
         return inode->direct_blocks[i];
     }
 
     // 一次间址
-    // if (i >= direct_max && i < single_max) {
-    if (1) {
+    if (i >= direct_max && i < single_max) {
         uint32_t* buf = (uint32_t*)malloc(addrs_per_block * sizeof(uint32_t));
-        if (block_read(handle, inode->single_indirect, blocksize, buf) ==
+        if (block_read(handle, blocksize, inode->single_indirect, buf) ==
             BLOCK_ERROR) {
             free(buf);
             return INODE_ERROR;
@@ -31,52 +33,52 @@ int64_t locate_block(vdisk_handle_t handle, uint16_t blocksize, inode_t* inode,
         free(buf);
         return ret;
     }
-    /*
-        // 两次间址
-        if (i >= single_max && i < double_max) {
-            uint32_t buf[addrs_per_block];
 
-            // 先读二次间地址的直接地址块
-            if (block_read(handle, inode->double_indirect, blocksize, buf) ==
-                BLOCK_ERROR) {
-                return INODE_ERROR;
-            }
+    // 两次间址
+    if (i >= single_max && i < double_max) {
+        uint32_t buf[addrs_per_block];
 
-            // 再读取直接地址块的第site个地址指向的block
-            i = i - single_max;
-            uint32_t j = buf[i / addrs_per_block];
-            if (block_read(handle, j, blocksize, buf) == BLOCK_ERROR) {
-                return INODE_ERROR;
-            }
-            return buf[i % addrs_per_block];
+        // 先读二次间地址的直接地址块
+        if (block_read(handle, blocksize, inode->double_indirect, buf) ==
+            BLOCK_ERROR) {
+            return INODE_ERROR;
         }
 
-        // 三次间址
-        if (i >= double_max && i < triple_max) {
-            uint32_t buf[addrs_per_block];
-
-            //先读三次间地址的直接地址块
-            if (block_read(handle, inode->triple_indirect, blocksize, buf) ==
-                BLOCK_ERROR) {
-                return INODE_ERROR;
-            }
-
-            //再读取直接地址块的第site个地址指向的block
-            i = i - double_max;
-            uint32_t j = buf[i / (addrs_per_block * addrs_per_block)];
-            if (block_read(handle, j, blocksize, buf) == BLOCK_ERROR) {
-                return INODE_ERROR;
-            }
-
-            //再读取间接地址块的第n个地址指向的block
-            i = i % addrs_per_block;
-            uint32_t k = buf[i / (addrs_per_block)];
-            if (block_read(handle, k, blocksize, buf) == BLOCK_ERROR) {
-                return INODE_ERROR;
-            }
-            return buf[i % addrs_per_block];
+        // 再读取直接地址块的第site个地址指向的block
+        i = i - single_max;
+        uint32_t j = buf[i / addrs_per_block];
+        if (block_read(handle, blocksize, j, buf) == BLOCK_ERROR) {
+            return INODE_ERROR;
         }
-    */
+        return buf[i % addrs_per_block];
+    }
+
+    // 三次间址
+    if (i >= double_max && i < triple_max) {
+        uint32_t buf[addrs_per_block];
+
+        //先读三次间地址的直接地址块
+        if (block_read(handle, blocksize, inode->triple_indirect, buf) ==
+            BLOCK_ERROR) {
+            return INODE_ERROR;
+        }
+
+        //再读取直接地址块的第site个地址指向的block
+        i = i - double_max;
+        uint32_t j = buf[i / (addrs_per_block * addrs_per_block)];
+        if (block_read(handle, blocksize, j, buf) == BLOCK_ERROR) {
+            return INODE_ERROR;
+        }
+
+        //再读取间接地址块的第n个地址指向的block
+        i = i % addrs_per_block;
+        uint32_t k = buf[i / (addrs_per_block)];
+        if (block_read(handle, blocksize, k, buf) == BLOCK_ERROR) {
+            return INODE_ERROR;
+        }
+        return buf[i % addrs_per_block];
+    }
+    assert(0);
     return INODE_ERROR;
 }
 

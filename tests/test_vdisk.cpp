@@ -24,21 +24,21 @@ TEST_CASE("VirtualDisk All", "[vdisk]") {
 
     /* 尝试重复添加vdisk2 */
     vdisk_handle_t handle2plus = vdisk_add(vdisk2);
-    REQUIRE(handle2plus == VDISK_ERROR);
+    REQUIRE(handle2plus == -1);
 
     /* 测试获取vdisk设备大小 */
     REQUIRE(vdisk_get_size(handle1) == 32 * SECTOR_SIZE);
     REQUIRE(vdisk_get_size(handle2) == 2048 * SECTOR_SIZE);
 
     /* 生成32个扇区大小的随机内容 */
-    char buf_w[32 * SECTOR_SIZE];
+    char *buf_w = (char *)malloc(32 * SECTOR_SIZE * sizeof(char));
     srand((unsigned)time(NULL));
     for (int i = 0; i < 32 * SECTOR_SIZE; i++) {
         buf_w[i] = rand() % 256;
     }
 
     /* vdisk常规读写测试 */
-    char buf_r[16 * SECTOR_SIZE];
+    char *buf_r = (char *)malloc(16 * SECTOR_SIZE * sizeof(char));
     REQUIRE(vdisk_write(handle1, 0, 32, buf_w) == 32);
     /* 从6号扇区（第7个）开始读取两个扇区的内容 */
     REQUIRE(vdisk_read(handle1, 6, 2, buf_r) == 2);
@@ -53,16 +53,25 @@ TEST_CASE("VirtualDisk All", "[vdisk]") {
     REQUIRE(vdisk_write(handle1, 31, 1, buf_w) == 1);
     REQUIRE(vdisk_write(handle1, 31, 2, buf_w) == 1);
     REQUIRE(vdisk_write(handle1, 32, 1, buf_w) == 0);
-    REQUIRE(vdisk_write(handle1, 33, 1, buf_w) == VDISK_ERROR);
+    REQUIRE(vdisk_write(handle1, 33, 1, buf_w) == 0);
+    REQUIRE(vdisk_error(handle1) != 0);
+    vdisk_clearerr(handle1);
+    REQUIRE(vdisk_error(handle1) == 0);
     REQUIRE(vdisk_read(handle1, 16, 32, buf_w) == 16);
     REQUIRE(vdisk_read(handle1, 31, 1, buf_w) == 1);
     REQUIRE(vdisk_read(handle1, 31, 2, buf_w) == 1);
     REQUIRE(vdisk_read(handle1, 32, 1, buf_w) == 0);
-    REQUIRE(vdisk_read(handle1, 33, 1, buf_w) == VDISK_ERROR);
+    REQUIRE(vdisk_read(handle1, 33, 1, buf_w) == 0);
+    REQUIRE(vdisk_error(handle1) != 0);
+    vdisk_clearerr(handle1);
+    REQUIRE(vdisk_error(handle1) == 0);
 
     /* 移除虚拟磁盘 */
     REQUIRE(vdisk_remove(handle1) == 0);
     REQUIRE(vdisk_remove(handle2) == 0);
+
+    free(buf_w);
+    free(buf_r);
 
     /* 删除临时文件 */
     remove(vdisk1);
