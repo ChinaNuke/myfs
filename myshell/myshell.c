@@ -14,6 +14,8 @@
 #include <sys/wait.h>
 #include <unistd.h>
 
+#include "filesystem.h"
+
 /*
  * TODO(peng):
  * 计划实现以下命令
@@ -35,13 +37,16 @@
 int mysh_cd(char **args);
 int mysh_help(char **args);
 int mysh_exit(char **args);
+int mysh_create_disk(char **args);
+int mysh_mount(char **args);
 
 /*
   内建命令和它们对应的函数
  */
-char *builtin_str[] = {"cd", "help", "exit"};
+char *builtin_str[] = {"cd", "help", "exit", "create_disk", "mount"};
 
-int (*builtin_func[])(char **) = {&mysh_cd, &mysh_help, &mysh_exit};
+int (*builtin_func[])(char **) = {&mysh_cd, &mysh_help, &mysh_exit,
+                                  &mysh_create_disk, &myfs_mount};
 
 int mysh_num_builtins() { return sizeof(builtin_str) / sizeof(char *); }
 
@@ -88,6 +93,24 @@ int mysh_help(char **args) {
    @return Always returns 0, to terminate execution.
  */
 int mysh_exit(char **args) { return 0; }
+
+int mysh_create_disk(char **args) {
+    if (args[2] == NULL) {
+        fprintf(stderr,
+                "mysh: \"create_disk\"命令需要两个参数！(create_disk "
+                "\"myfs.fs\" 4096)\n");
+    } else {
+        char *buf = (char *)calloc((uint16_t)args[2], sizeof(char));
+        FILE *fp = fopen(args[1], "w+b");
+        fwrite(buf, sizeof(char), (uint16_t)args[2], fp);
+        fclose(fp);
+    }
+    return 1;
+}
+
+int mysh_format() { return 0; }
+
+int mysh_mount(char **args) { return 0; }
 
 /**
   @brief 启动一个程序，然后等待它执行终止。

@@ -177,6 +177,9 @@ int create_dentry(vdisk_handle_t handle, super_block_t* sb, uint8_t* bitmap,
     if (parent != NULL) {
         inode_t* p_inode = load_inode(handle, sb->block_size, parent->inode);
 
+        assert(p_inode->blocks == 1);
+        assert(p_inode->block == 1125);
+
         assert(sb->block_size % sizeof(dir_entry_t) == 0);
         dir_entry_t* dentries = malloc(sb->block_size);
 
@@ -184,10 +187,14 @@ int create_dentry(vdisk_handle_t handle, super_block_t* sb, uint8_t* bitmap,
         for (uint32_t block = 0; block < p_inode->blocks; block++) {
             uint32_t block_addr =
                 locate_block(handle, sb->block_size, p_inode, block);
+
+            assert(block_addr == 1125);
+
             block_read(handle, sb->block_size, block_addr, dentries);
             for (uint16_t i = 0; i < sb->block_size / sizeof(dir_entry_t);
                  i++) {
                 if (strcmp(dentries[i].name, name) == 0) {
+                    //                    assert(0);
                     free(dentries);
                     return -1;
                 } else if (dentries[i].file_type == FTYPE_UNUSED &&
@@ -198,11 +205,9 @@ int create_dentry(vdisk_handle_t handle, super_block_t* sb, uint8_t* bitmap,
             }
         }
         free(dentries);
+        assert(free_dentry_block_at != 0);
+        assert(free_dentry_offset != 0);
     }
-
-    /* 分配一个空闲盘块 */
-    uint32_t block_no =
-        data_block_alloc(handle, sb->block_size, &(sb->group_stack));
 
     /* 信息填入inode */
     inode_t c_inode;
@@ -210,12 +215,14 @@ int create_dentry(vdisk_handle_t handle, super_block_t* sb, uint8_t* bitmap,
     c_inode.mode = file_type;
     c_inode.size = sb->block_size;
     c_inode.atime = c_inode.ctime = c_inode.mtime = 0; /* TODO */
-    c_inode.blocks = 1;
+    c_inode.blocks = 0;
     c_inode.links_count = 1;
-    c_inode.block = block_no;
-    // inode_append_block(handle, blocksize, &c_inode); /* 把盘块添加给inode */
+    uint32_t block_no = inode_append_block(handle, sb, &c_inode);
+    c_inode.block = block_no; /* 这个属性似乎没什么用 */
 
-    uint16_t c_inode_no = inode_alloc(sb, bitmap);
+    int32_t c_inode_no = inode_alloc(sb, bitmap);
+    assert(c_inode_no != INODE_ERROR);
+
     dump_inode(handle, sb->block_size, c_inode_no,
                &c_inode); /* inode写入磁盘 */
 
@@ -252,113 +259,198 @@ int create_dentry(vdisk_handle_t handle, super_block_t* sb, uint8_t* bitmap,
 
     return 0;
 }
+void release_dentry(vdisk_handle_t handle, super_block_t* sb, uint8_t* bitmap,
+                    dir_entry_t* dentry);
+
 int remove_dentry(vdisk_handle_t handle, super_block_t* sb, uint8_t* bitmap,
-                   dir_entry_t* parent, char* name,uint8_t file_type){
-    if (parent != NULL) {
-        inode_t* p_inode = load_inode(handle, sb->block_size, parent->inode);
+                  dir_entry_t* dentry, dir_entry_t* parent) {
+    /* 不允许删除 ./.. 以及根目录 */
+    if (strcmp(dentry->name, ".") == 0 || strcmp(dentry->name, "..") == 0 ||
+        dentry->inode == 0) {
+        return -1;
+    }
 
-        assert(sb->block_size % sizeof(dir_entry_t) == 0);
-        dir_entry_t* dentries = malloc(sb->block_size);
+    /* 对要删除的目录及其子目录执行递归释放 */
+    release_dentry(handle, sb, bitmap, dentry);
 
-        /* 每次读入一个block，遍历block中的dentries */
-        for (uint32_t block = 0; block < p_inode->blocks; block++) {
-            uint32_t block_addr = locate_block(handle, sb->block_size, p_inode, block);
-            block_read(handle, sb->block_size, block_addr, dentries);
-            for (uint16_t i = 0; i < sb->block_size / sizeof(dir_entry_t);i++) {
-                if (strcmp(dentries[i].name, name) == 0) {
-                    if(file_type==FTYPE_DIR){  /*删除目录 */
-
-                        release_dir(handle, sb, bitmap,dentries,i,block_addr);
-                    }else if(file_type==FTYPE_FILE){  /*删除普通文件 */
-
-                        release_file(handle, sb, bitmap,dentries,i,block_addr);
-                    }else if(file_type==FTYPE_LINK){  /*删除链接文件 */
-                        inode_t* free_inode = load_inode(handle, sb->block_size, dentries[i].inode);
-                        if(free_inode->links_count > 1){
-                            /*正在被共享 */
-                            free_inode->links_count --;
-                        }else if(free_inode->links_count == 1){
-                            
-                            release_file(handle, sb, bitmap,dentries,i,block_addr);
-                        }else{
-                            free(dentries);
-                            free(free_inode);
-                            return -1;
-                        }
-                        /*删除成功 */
-                        free(free_inode);
-                        free(dentries);
-                        //return ;
-                    }
-                    free(dentries);
-                    
-                } 
+    /* 从其父目录中移除对应的目录项 */
+    inode_t* p_inode = load_inode(handle, sb->block_size, parent->inode);
+    dir_entry_t* dentries = malloc(sb->block_size);
+    uint8_t found = 0;
+    for (uint32_t block = 0; block < p_inode->blocks; block++) {
+        memset(dentries, 0, sb->block_size);
+        uint32_t block_addr =
+            locate_block(handle, sb->block_size, p_inode, block);
+        block_read(handle, sb->block_size, block_addr, dentries);
+        for (uint16_t i = 0; i < sb->block_size / sizeof(dir_entry_t); i++) {
+            if (dentries[i].file_type != FTYPE_UNUSED &&
+                strcpy(dentries[i].name, dentry->name) == 0) {
+                dentries[i].file_type = FTYPE_UNUSED;
+                found = 1; /* 用于跳出外层循环 */
             }
         }
-        free(dentries);
+        if (found == 1) {
+            break;
+        }
     }
+    free(dentries);
     return 0;
+
+    //    /* 每次读入一个block，遍历block中的dentries */
+    //    for (uint32_t block = 0; block < p_inode->blocks; block++) {
+    //        uint32_t block_addr =
+    //            locate_block(handle, sb->block_size, p_inode, block);
+    //        block_read(handle, sb->block_size, block_addr, dentries);
+    //        for (uint16_t i = 0; i < sb->block_size / sizeof(dir_entry_t);
+    //        i++) {
+    //            if (strcmp(dentries[i].name, name) == 0) {
+    //                if (file_type == FTYPE_DIR) { /*删除目录 */
+
+    //                    release_dir(handle, sb, bitmap, dentries, i,
+    //                    block_addr);
+    //                } else if (file_type == FTYPE_FILE) { /*删除普通文件 */
+
+    //                    release_file(handle, sb, bitmap, dentries, i,
+    //                    block_addr);
+    //                } else if (file_type == FTYPE_LINK) { /*删除链接文件 */
+    //                    inode_t* free_inode =
+    //                        load_inode(handle, sb->block_size,
+    //                        dentries[i].inode);
+    //                    if (free_inode->links_count > 1) {
+    //                        /*正在被共享 */
+    //                        free_inode->links_count--;
+    //                    } else if (free_inode->links_count == 1) {
+    //                        release_file(handle, sb, bitmap, dentries, i,
+    //                                     block_addr);
+    //                    } else {
+    //                        free(dentries);
+    //                        free(free_inode);
+    //                        return -1;
+    //                    }
+    //                    /*删除成功 */
+    //                    free(free_inode);
+    //                    free(dentries);
+    //                    // return ;
+    //                }
+    //                free(dentries);
+    //            }
+    //        }
+    //    }
+    //    free(dentries);
+
+    //    return 0;
 }
-/*删除目录(递归)
+/* 删除目录(递归)
  */
-void release_dir(vdisk_handle_t handle, super_block_t* sb, uint8_t* bitmap,dir_entry_t* dentries,uint16_t offset,uint32_t block_addr){
-     
-     inode_t* free_inode = load_inode(handle, sb->block_size, dentries[offset].inode);
-     if(free_inode->blocks==0){ /*空目录or空文件(不占数据块) */
-        /*释放inode */
-        inode_free(sb,bitmap,dentries[offset].inode);
-        /*清目录项记录 */
-        dentries[offset].file_type=FTYPE_UNUSED;
-        dentries[offset].inode=0;
-//        dentries[offset].name=NULL;
-        /*修改后写回 */
-        block_write(handle,sb->block_size,block_addr,dentries);
-        return;
-     }
-     else if(free_inode->blocks > 0){
-         if(dentries[offset].file_type == FTYPE_FILE){
-             release_file(handle, sb, bitmap,dentries,offset,block_addr);
-             return;
-         }else if(dentries[offset].file_type == FTYPE_LINK){
-            if(free_inode->links_count > 1){
-                /*正在被共享 */
-                free_inode->links_count --;
-                return;
-            }else if(free_inode->links_count == 1){
-                release_file(handle, sb, bitmap,dentries,offset,block_addr);
-                return;
+void release_dentry(vdisk_handle_t handle, super_block_t* sb, uint8_t* bitmap,
+                    dir_entry_t* dentry) {
+    inode_t* inode_struct = load_inode(handle, sb->block_size, dentry->inode);
+
+    /* 分为三种情况进行处理
+     * 对于链接，只需要将其所指向的inode链接计数减1
+     * 对于文件，需要将其所有盘块释放，并将其索引结点释放
+     * 对于目录，要递归释放其子目录，最后释放其拥有的所有盘块，并释放其索引结点
+     */
+
+    if (dentry->file_type == FTYPE_LINK) {
+        inode_struct->links_count--;
+        /* TODO: 此处应考虑链接减小为0时删除文件/目录 */
+        dump_inode(handle, sb->block_size, dentry->inode, inode_struct);
+        free(inode_struct);
+    } else if (dentry->file_type == FTYPE_FILE) {
+        for (uint32_t i = 0; i < inode_struct->blocks; i++) {
+            uint32_t block_addr =
+                locate_block(handle, sb->block_size, inode_struct, i);
+            data_block_free(handle, sb->block_size, block_addr,
+                            &sb->group_stack);
+        }
+        inode_free(sb, bitmap, dentry->inode);
+    } else if (dentry->file_type == FTYPE_DIR) {
+        uint32_t blocks_count = inode_struct->blocks;
+        dir_entry_t* dentries = malloc(sb->block_size);
+        for (uint32_t i = 0; i < blocks_count; i++) {
+            memset(dentries, 0, sb->block_size);
+            uint32_t block =
+                locate_block(handle, sb->block_size, inode_struct, i);
+            block_read(handle, sb->block_size, block, dentries);
+
+            for (uint16_t j = 0; j < sb->block_size / sizeof(dir_entry_t);
+                 j++) {
+                release_dentry(handle, sb, bitmap, &dentries[j]);
             }
-         }else{
-             dir_entry_t* dentries = malloc(sb->block_size);
-             for (uint32_t block = 0; block < free_inode->blocks; block++) {
-                uint32_t block_id = locate_block(handle, sb->block_size, free_inode, block);
-                block_read(handle, sb->block_size, block_id, dentries);
-                release_dir(handle,sb,bitmap, dentries,block,block_id);
-             }   
-         }
-     }
-     
- }
+
+            data_block_free(handle, sb->block_size, block, &sb->group_stack);
+        }
+        free(dentries);
+        inode_free(sb, bitmap, dentry->inode);
+    }
+    free(inode_struct);
+
+    //    inode_t* free_inode =
+    //        load_inode(handle, sb->block_size, dentries[offset].inode);
+    //    if (free_inode->blocks == 0) { /*空目录or空文件(不占数据块) */
+    //        /*释放inode */
+    //        inode_free(sb, bitmap, dentries[offset].inode);
+    //        /*清目录项记录 */
+    //        dentries[offset].file_type = FTYPE_UNUSED;
+    //        dentries[offset].inode = 0;
+    //        //        dentries[offset].name=NULL;
+    //        /*修改后写回 */
+    //        block_write(handle, sb->block_size, block_addr, dentries);
+    //        return;
+    //    } else if (free_inode->blocks > 0) {
+    //        if (dentries[offset].file_type == FTYPE_FILE) {
+    //            release_file(handle, sb, bitmap, dentries, offset,
+    //            block_addr); return;
+    //        } else if (dentries[offset].file_type == FTYPE_LINK) {
+    //            if (free_inode->links_count > 1) {
+    //                /*正在被共享 */
+    //                free_inode->links_count--;
+    //                return;
+    //            } else if (free_inode->links_count == 1) {
+    //                release_file(handle, sb, bitmap, dentries, offset,
+    //                block_addr); return;
+    //            }
+    //        } else {
+    //            dir_entry_t* dentries = malloc(sb->block_size);
+    //            for (uint32_t block = 0; block < free_inode->blocks; block++)
+    //            {
+    //                uint32_t block_id =
+    //                    locate_block(handle, sb->block_size, free_inode,
+    //                    block);
+    //                block_read(handle, sb->block_size, block_id, dentries);
+    //                release_dir(handle, sb, bitmap, dentries, block,
+    //                block_id);
+    //            }
+    //        }
+    //    }
+}
 /*remove_dentry的子函数
  *实现释放指定inode的数据块(存的是数据)
  */
-void release_file(vdisk_handle_t handle, super_block_t* sb, uint8_t* bitmap,dir_entry_t* dentries,uint16_t offset,uint32_t block_addr){
-    inode_t* free_inode = load_inode(handle, sb->block_size, dentries[offset].inode);
-    if(free_inode->blocks > 0){   /* 非空文件(占数据块)*/
-        for (uint32_t j = 0; j < free_inode->blocks; j++) {
-            uint32_t block_id = locate_block(handle, sb->block_size, free_inode, j);
-            data_block_free(handle,sb->block_size,block_id,&(sb->group_stack));
-        }
-    }
-    /*释放inode */
-    inode_free(sb,bitmap,dentries[offset].inode);
-    /*清目录项记录 */
-    dentries[offset].file_type=FTYPE_UNUSED;
-    dentries[offset].inode=0;
-//    dentries[offset].name=NULL;
-    /*修改后写回 */
-    block_write(handle,sb->block_size,block_addr,dentries);
-}
+// void release_file(vdisk_handle_t handle, super_block_t* sb, uint8_t* bitmap,
+//                  dir_entry_t* dentries, uint16_t offset, uint32_t block_addr)
+//                  {
+//    inode_t* free_inode =
+//        load_inode(handle, sb->block_size, dentries[offset].inode);
+//    if (free_inode->blocks > 0) { /* 非空文件(占数据块)*/
+//        for (uint32_t j = 0; j < free_inode->blocks; j++) {
+//            uint32_t block_id =
+//                locate_block(handle, sb->block_size, free_inode, j);
+//            data_block_free(handle, sb->block_size, block_id,
+//                            &(sb->group_stack));
+//        }
+//    }
+//    /*释放inode */
+//    inode_free(sb, bitmap, dentries[offset].inode);
+//    /*清目录项记录 */
+//    dentries[offset].file_type = FTYPE_UNUSED;
+//    dentries[offset].inode = 0;
+//    //    dentries[offset].name=NULL;
+//    /*修改后写回 */
+//    block_write(handle, sb->block_size, block_addr, dentries);
+//}
+
 // dir_entry_t* find_dentry(vdisk_handle_t handle, uint32_t blocksize,
 //                         inode_t* inode, const char* filename) {
 //    assert(blocksize % sizeof(dir_entry_t) == 0);

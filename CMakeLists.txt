@@ -17,7 +17,7 @@ aux_source_directory(myshell/ MYSH_SRCS)
 
 # 主程序
 add_executable(mysh ${MYSH_SRCS})
-target_link_libraries(mysh myfs utils)
+target_link_libraries(mysh myfs virtualdisk)
 target_include_directories(mysh PUBLIC "${PROJECT_SOURCE_DIR}")
 
 # virtual disk

@@ -15,8 +15,6 @@ int64_t locate_block(vdisk_handle_t handle, uint16_t blocksize, inode_t* inode,
     const uint32_t triple_max =
         double_max + addrs_per_block * addrs_per_block * addrs_per_block;
 
-    assert(blocksize == 1024);
-
     // 直接寻址
     if (i < direct_max) {
         return inode->direct_blocks[i];
@@ -83,7 +81,7 @@ int64_t locate_block(vdisk_handle_t handle, uint16_t blocksize, inode_t* inode,
     return INODE_ERROR;
 }
 
-uint16_t inode_alloc(super_block_t* sb, uint8_t* bitmap) {
+int32_t inode_alloc(super_block_t* sb, uint8_t* bitmap) {
     for (uint16_t i = 0; i < sb->inodes_count / 8;
          i++) {                  /* 遍历block上每个字节 */
         if (bitmap[i] != 0xFF) { /* 有字节含有 0 位（即有空闲） */
@@ -138,4 +136,41 @@ int dump_inode(vdisk_handle_t handle, uint16_t blocksize, uint16_t inode,
     free(buf);
     // free(one_inode);
     return 0;
+}
+
+int inode_append_block(vdisk_handle_t handle, super_block_t* sb,
+                       inode_t* inode_struct) {
+    uint16_t blocksize = sb->block_size;
+    const uint16_t addrs_per_block = blocksize / BLOCK_ADDR_LEN;
+    const uint32_t direct_max = 12;
+    const uint32_t single_max = direct_max + addrs_per_block;
+    const uint32_t double_max = single_max + addrs_per_block * addrs_per_block;
+    const uint32_t triple_max =
+        double_max + addrs_per_block * addrs_per_block * addrs_per_block;
+
+    if (inode_struct->blocks >= triple_max) {
+        return -1;
+    }
+
+    uint32_t new_block = data_block_alloc(handle, blocksize, &sb->group_stack);
+    uint32_t blocks_count = inode_struct->blocks;
+    if (blocks_count < direct_max) {
+        inode_struct->direct_blocks[blocks_count] = new_block;
+    } else if (blocks_count >= direct_max && blocks_count < single_max) {
+        if (blocks_count == direct_max) {
+            uint32_t new_addr_block =
+                data_block_alloc(handle, blocksize, &sb->group_stack);
+            inode_struct->single_indirect = new_addr_block;
+        }
+        uint32_t* single_indirect_blk = malloc(blocksize);
+        block_read(handle, blocksize, inode_struct->single_indirect,
+                   single_indirect_blk);
+        single_indirect_blk[blocks_count - direct_max] = new_block;
+        block_write(handle, blocksize, inode_struct->single_indirect,
+                    single_indirect_blk);
+        free(single_indirect_blk);
+    }
+    /* TODO: 目前只考虑了直接寻址和一次间址，后面再完善二次和三次间址 */
+    inode_struct->blocks++;
+    return new_block;
 }

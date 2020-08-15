@@ -15,6 +15,9 @@ typedef struct {
     uint8_t *bitmap;
 } myfs_t;
 
+myfs_t fs[1024];
+// uint16_t cur_fs = -1;
+
 int myfs_format(vdisk_handle_t handle, uint16_t blocksize);
 
 int myfs_mount(vdisk_handle_t handle, myfs_t **fs);

@@ -15,14 +15,15 @@
 #define DIR_ENTRY_SIZE 32
 #define DIR_ENTRY_ERROR -1
 
-enum filetypes { FTYPE_UNUSED, FTYPE_FILE, FTYPE_DIR, FTYPE_LINK };
+/* FTYPE_UNUSED 必须为0，其他无所谓 */
+enum filetypes { FTYPE_UNUSED = 0, FTYPE_FILE, FTYPE_DIR, FTYPE_LINK };
 
 typedef struct dir_entry {
     char name[29];
     uint16_t inode;     // inode号
     uint8_t file_type;  // 文件类型id
 
-} dir_entry_t;
+} __attribute__((packed)) dir_entry_t;
 
 /*读目录项所在的blcok
  *block:目录项存储的起始块号
@@ -45,10 +46,7 @@ int del_document(char* name, vdisk_handle_t handle, uint32_t blocksize,
                  uint16_t inode_id);
 
 int remove_dentry(vdisk_handle_t handle, super_block_t* sb, uint8_t* bitmap,
-                   dir_entry_t* parent, char* name,uint8_t file_type);
-
-void release_dir(vdisk_handle_t handle, super_block_t* sb, uint8_t* bitmap,dir_entry_t* dentries,uint16_t offset,uint32_t block_addr);
-void release_file(vdisk_handle_t handle, super_block_t* sb, uint8_t* bitmap,dir_entry_t* dentries,uint16_t offset,uint32_t block_addr);
+                  dir_entry_t* dentry, dir_entry_t* parent);
 
 /*通过文件名查找inode号
  *block:存放目录项的block号
