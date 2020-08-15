@@ -7,6 +7,7 @@ extern "C" {
 #include "data_block.h"
 #include "dir_entry.h"
 #include "filesystem.h"
+#include "super_block.h"
 }
 
 TEST_CASE("Block All", "[myfs][block]") {
@@ -258,16 +259,13 @@ TEST_CASE("Filesystem Format and Create directory or file",
     REQUIRE(myfs_format(handle1, blocksize) == 0);
 
     /* 检查 superblock 区域 */
-    char *buf = (char *)malloc(blocksize);
-    block_read(handle1, blocksize, 0, buf);
     super_block_t sb;
-    memcpy(&sb, buf, sizeof(super_block_t));
+    load_super_block(handle1, &sb);
     REQUIRE(sb.block_size == blocksize);
     REQUIRE(sb.inode_size == INODE_SIZE);
     REQUIRE(sb.inodes_count == 8 * blocksize);
     REQUIRE(sb.free_inodes_count == 8 * blocksize - 1);
     REQUIRE(sb.total_size == 2000 * blocksize);
-    free(buf);
 
     /* 检查 bitmap 区域 */
     uint8_t *bitmap = (uint8_t *)malloc(blocksize);
@@ -279,7 +277,7 @@ TEST_CASE("Filesystem Format and Create directory or file",
     //    free(bitmap);
 
     /* 检查 inode table 区域 */
-    buf = (char *)malloc(blocksize);
+    char *buf = (char *)malloc(blocksize);
     block_read(handle1, blocksize, 2, buf);
     inode_t inode;
     memcpy(&inode, buf, sizeof(inode_t));
@@ -308,11 +306,11 @@ TEST_CASE("Filesystem Format and Create directory or file",
     for (uint16_t i = 1; i < blocksize / sizeof(dir_entry_t); i++) {
         REQUIRE(dentries[i].file_type == FTYPE_UNUSED);
     }
-    free(dentries);
+    //    free(dentries);
 
     REQUIRE(sizeof(dir_entry_t) == 32);
 
-    /* 测试在根目录创建目录/文件以及删除 */
+    /* 测试在根目录创建目录/文件 */
 
     REQUIRE(create_dentry(handle1, &sb, bitmap, &dentries[0],
                           (char *)"helloworld", FTYPE_DIR) == 0);
@@ -320,15 +318,12 @@ TEST_CASE("Filesystem Format and Create directory or file",
                           (char *)"helloworld", FTYPE_DIR) == -1);
     REQUIRE(create_dentry(handle1, &sb, bitmap, &dentries[0], (char *)"myfs",
                           FTYPE_FILE) == 0);
+    dump_super_block(handle1, &sb);
 
     /* 再次检查 super block */
-    buf = (char *)malloc(blocksize);
-    block_read(handle1, blocksize, 0, buf);
-    //    memcpy(&sb, buf, sizeof(super_block_t));
     REQUIRE(sb.free_inodes_count == 8 * blocksize - 3);
-    free(buf);
 
-    dentries = (dir_entry_t *)malloc(blocksize);
+    //    dentries = (dir_entry_t *)malloc(blocksize);
     block_read(handle1, blocksize, inode.block, dentries);
     REQUIRE(strcmp(dentries[0].name, ".") == 0);
     REQUIRE(dentries[0].file_type == FTYPE_DIR);
@@ -343,9 +338,35 @@ TEST_CASE("Filesystem Format and Create directory or file",
         REQUIRE(dentries[i].file_type == FTYPE_UNUSED);
     }
 
+    CAPTURE(dentries[1].name, dentries[1].file_type);
+    REQUIRE(create_dentry(handle1, &sb, bitmap, &dentries[1], (char *)"subdir",
+                          FTYPE_DIR) == 0);
+    REQUIRE(create_dentry(handle1, &sb, bitmap, &dentries[2], (char *)"subdir",
+                          FTYPE_DIR) == -1);
+
+    /* 测试删除文件/目录 */
+
+    CAPTURE(dentries[1].name, dentries[1].file_type);
+    REQUIRE(remove_dentry(handle1, &sb, bitmap, &dentries[1], &dentries[0]) ==
+            0);
+    //    REQUIRE(remove_dentry(handle1, &sb, bitmap, &dentries[2],
+    //    &dentries[0]) ==
+    //            0);
+    //    REQUIRE(remove_dentry(handle1, &sb, bitmap, &dentries[0],
+    //    &dentries[0]) ==
+    //            -1);
+
+    /* 再次检查 super block */
+    //    REQUIRE(sb.free_inodes_count == 8 * blocksize - 1);
+
+    //    block_read(handle1, blocksize, inode.block, dentries);
+    //    REQUIRE(strcmp(dentries[0].name, ".") == 0);
+    //    REQUIRE(dentries[0].file_type == FTYPE_DIR);
+    //    REQUIRE(dentries[1].file_type == FTYPE_UNUSED);
+    //    REQUIRE(dentries[2].file_type == FTYPE_UNUSED);
+
     free(dentries);
     free(bitmap);
-
     vdisk_remove(handle1);
     remove(vdisk1);
 }

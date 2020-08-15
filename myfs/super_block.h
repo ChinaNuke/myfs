@@ -27,4 +27,7 @@ typedef struct {
 
 } super_block_t;
 
+int load_super_block(vdisk_handle_t handle, super_block_t *sb);
+int dump_super_block(vdisk_handle_t handle, super_block_t *sb);
+
 #endif

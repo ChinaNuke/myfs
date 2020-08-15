@@ -7,8 +7,6 @@
 
 #define MYFS_ERROR -1
 
-enum blk_size { BLK_SIZE_1K = 1024, BLK_SIZE_2K = 2048, BLK_SIZE_4K = 4096 };
-
 typedef struct {
     vdisk_handle_t disk_handle;
     super_block_t *sb;

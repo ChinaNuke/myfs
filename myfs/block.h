@@ -15,6 +15,8 @@
 
 #define BLOCK_ERROR -1
 
+enum blk_size { BLK_SIZE_1K = 1024, BLK_SIZE_2K = 2048, BLK_SIZE_4K = 4096 };
+
 /*
  * 读取一个block
  * handle: 磁盘设备文件号
