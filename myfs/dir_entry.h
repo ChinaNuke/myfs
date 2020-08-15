@@ -44,6 +44,12 @@ int create_dentry(vdisk_handle_t handle, super_block_t* sb, uint8_t* bitmap,
 int del_document(char* name, vdisk_handle_t handle, uint32_t blocksize,
                  uint16_t inode_id);
 
+int remove_dentry(vdisk_handle_t handle, super_block_t* sb, uint8_t* bitmap,
+                   dir_entry_t* parent, char* name,uint8_t file_type);
+
+void release_dir(vdisk_handle_t handle, super_block_t* sb, uint8_t* bitmap,dir_entry_t* dentries,uint16_t offset,uint32_t block_addr);
+void release_file(vdisk_handle_t handle, super_block_t* sb, uint8_t* bitmap,dir_entry_t* dentries,uint16_t offset,uint32_t block_addr);
+
 /*通过文件名查找inode号
  *block:存放目录项的block号
 
