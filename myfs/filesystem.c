@@ -94,7 +94,12 @@ int myfs_mount(vdisk_handle_t handle, myfs_t **fs) {
 
 int myfs_unmount(myfs_t *fs) {
     free(fs->sb);
-    free(fs);
+    //    free(fs);
+    return 0;
+}
+
+int myfs_ls(myfs_t *fs) {
+    //
     return 0;
 }
 

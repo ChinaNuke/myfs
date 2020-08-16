@@ -7,6 +7,7 @@
 
  *******************************************************************************/
 
+#include <assert.h>
 #include <stdio.h>
 #include <stdlib.h>
 #include <string.h>
@@ -15,6 +16,7 @@
 #include <unistd.h>
 
 #include "filesystem.h"
+#include "fs.h"
 
 /*
  * TODO(peng):
@@ -37,16 +39,23 @@
 int mysh_cd(char **args);
 int mysh_help(char **args);
 int mysh_exit(char **args);
-int mysh_create_disk(char **args);
+int mysh_createdisk(char **args);
+int mysh_format(char **args);
 int mysh_mount(char **args);
+int mysh_unmount(char **args);
+int mysh_pwd(char **args);
+int mysh_disks(char **args);
+int mysh_ls(char **args);
 
 /*
   内建命令和它们对应的函数
  */
-char *builtin_str[] = {"cd", "help", "exit", "create_disk", "mount"};
+char *builtin_str[] = {"cd",    "help",    "exit", "createdisk", "format",
+                       "mount", "unmount", "pwd",  "disks",      "ls"};
 
-int (*builtin_func[])(char **) = {&mysh_cd, &mysh_help, &mysh_exit,
-                                  &mysh_create_disk, &myfs_mount};
+int (*builtin_func[])(char **) = {
+    &mysh_cd,    &mysh_help,    &mysh_exit, &mysh_createdisk, &mysh_format,
+    &mysh_mount, &mysh_unmount, &mysh_pwd,  &mysh_disks,      &mysh_ls};
 
 int mysh_num_builtins() { return sizeof(builtin_str) / sizeof(char *); }
 
@@ -94,23 +103,94 @@ int mysh_help(char **args) {
  */
 int mysh_exit(char **args) { return 0; }
 
-int mysh_create_disk(char **args) {
+int mysh_createdisk(char **args) {
     if (args[2] == NULL) {
         fprintf(stderr,
-                "mysh: \"create_disk\"命令需要两个参数！(create_disk "
-                "\"myfs.fs\" 4096)\n");
+                "mysh: \"createdisk\"命令需要两个参数！(createdisk "
+                "myfs.fs 16(KBytes))\n");
     } else {
-        char *buf = (char *)calloc((uint16_t)args[2], sizeof(char));
+        if (access(args[1], F_OK) != -1) {
+            fprintf(stderr, "mysh: 虚拟磁盘%s已存在，请勿重复创建！\n",
+                    args[1]);
+            return 1;
+        }
+        char *buf = (char *)calloc(atoi(args[2]) * 1024, sizeof(char));
         FILE *fp = fopen(args[1], "w+b");
-        fwrite(buf, sizeof(char), (uint16_t)args[2], fp);
+        fwrite(buf, sizeof(char), atoi(args[2]) * 1024, fp);
         fclose(fp);
     }
     return 1;
 }
 
-int mysh_format() { return 0; }
+int mysh_format(char **args) {
+    if (args[2] == NULL) {
+        fprintf(stderr,
+                "mysh: \"format\"命令需要两个参数！(format myfs.fs 4096)\n");
+    } else {
+        if (fs_format(args[1], (uint16_t)args[2]) != 0) {
+            fprintf(stderr, "mysh: 格式化虚拟磁盘%s失败！\n", args[1]);
+        } else {
+            fprintf(stdout, "mysh: 格式化虚拟磁盘%s成功！\n", args[1]);
+        }
+    }
+    return 1;
+}
 
-int mysh_mount(char **args) { return 0; }
+int mysh_mount(char **args) {
+    if (args[1] == NULL) {
+        fprintf(stderr, "mysh: \"mount\"命令需要一个参数！(mount myfs.fs)\n");
+    } else {
+        int ret = fs_mount(args[1]);
+        if (ret == -1) {
+            fprintf(stderr, "mysh: 挂载虚拟磁盘%s失败！请检查是否已经挂载过.\n",
+                    args[1]);
+        } else {
+            fprintf(stdout, "mysh: 挂载虚拟磁盘%s成功！盘符为%c.\n", args[1],
+                    ret);
+        }
+    }
+    return 1;
+}
+
+int mysh_unmount(char **args) {
+    if (args[1] == NULL) {
+        fprintf(stderr, "mysh: \"unmount\"命令需要一个参数！(unmount A)\n");
+    } else {
+        int ret = fs_unmount(args[1][0]);
+        if (ret == -1) {
+            fprintf(stderr, "mysh: 卸载虚拟磁盘%s失败！请检查是否已挂载该盘.\n",
+                    args[1]);
+        } else {
+            fprintf(stdout, "mysh: 卸载虚拟磁盘%s成功！\n", args[1]);
+        }
+    }
+    return 1;
+}
+
+int mysh_pwd(char **args) {
+    if (args[1] != NULL) {
+        fprintf(stderr, "mysh: \"pwd\"命令不需要参数！\n");
+    } else {
+        char *ret = fs_pwd();
+        fprintf(stdout, "mysh: 当前路径为：%s\n", ret);
+    }
+    return 1;
+}
+
+int mysh_disks(char **args) {
+    if (args[1] != NULL) {
+        fprintf(stderr, "mysh: \"disks\"命令不需要参数！\n");
+    } else {
+        fprintf(stdout, "mysh: 当前已挂载的磁盘有：\n");
+        fs_disks();
+    }
+    return 1;
+}
+
+int mysh_ls(char **args) {
+    //
+    return 1;
+}
 
 /**
   @brief 启动一个程序，然后等待它执行终止。
@@ -249,6 +329,7 @@ void mysh_loop(void) {
     int status;
 
     do {
+        printf("%s", fs_pwd());
         printf("> ");
         line = mysh_read_line();
         args = mysh_split_line(line);

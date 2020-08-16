@@ -1,6 +1,6 @@
 aux_source_directory(. DIR_SRCS)
 
-list(REMOVE_ITEM DIR_SRCS ./fs.c)
+#list(REMOVE_ITEM DIR_SRCS ./fs.c)
 
 add_library(myfs ${DIR_SRCS})
 

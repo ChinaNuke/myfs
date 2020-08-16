@@ -310,7 +310,9 @@ TEST_CASE("Filesystem Format and Create directory or file",
 
     REQUIRE(sizeof(dir_entry_t) == 32);
 
-    /* 测试在根目录创建目录/文件 */
+    /*
+     * 测试在根目录创建目录/文件
+     */
 
     REQUIRE(create_dentry(handle1, &sb, bitmap, &dentries[0],
                           (char *)"helloworld", FTYPE_DIR) == 0);
@@ -320,10 +322,12 @@ TEST_CASE("Filesystem Format and Create directory or file",
                           FTYPE_FILE) == 0);
     dump_super_block(handle1, &sb);
 
+    dir_entry_t dir_root;
+    memcpy(&dir_root, &dentries[0], sizeof(dir_entry_t));
+
     /* 再次检查 super block */
     REQUIRE(sb.free_inodes_count == 8 * blocksize - 3);
 
-    //    dentries = (dir_entry_t *)malloc(blocksize);
     block_read(handle1, blocksize, inode.block, dentries);
     REQUIRE(strcmp(dentries[0].name, ".") == 0);
     REQUIRE(dentries[0].file_type == FTYPE_DIR);
@@ -338,32 +342,43 @@ TEST_CASE("Filesystem Format and Create directory or file",
         REQUIRE(dentries[i].file_type == FTYPE_UNUSED);
     }
 
-    CAPTURE(dentries[1].name, dentries[1].file_type);
-    REQUIRE(create_dentry(handle1, &sb, bitmap, &dentries[1], (char *)"subdir",
-                          FTYPE_DIR) == 0);
-    REQUIRE(create_dentry(handle1, &sb, bitmap, &dentries[2], (char *)"subdir",
-                          FTYPE_DIR) == -1);
+    dir_entry_t dir_helloworld;
+    memcpy(&dir_helloworld, &dentries[1], sizeof(dir_entry_t));
+
+    /* 子目录下创建目录/文件 */
+    //    CAPTURE(dentries[1].name, dentries[1].file_type);
+    REQUIRE(create_dentry(handle1, &sb, bitmap, &dir_helloworld,
+                          (char *)"subdir", FTYPE_DIR) == 0);
+    REQUIRE(create_dentry(handle1, &sb, bitmap, &dir_helloworld,
+                          (char *)"subfile", FTYPE_FILE) == 0);
+    REQUIRE(create_dentry(handle1, &sb, bitmap, &dir_helloworld,
+                          (char *)"subdir", FTYPE_DIR) == -1);
+
+    inode_t *helloworld = load_inode(handle1, blocksize, dir_helloworld.inode);
+    REQUIRE(helloworld->blocks == 1);
+    block_read(handle1, blocksize, helloworld->block, dentries);
+    REQUIRE(strcmp(dentries[0].name, ".") == 0);
+    REQUIRE(dentries[0].file_type == FTYPE_DIR);
+    REQUIRE(dentries[1].file_type == FTYPE_DIR);
+    REQUIRE(dentries[2].file_type == FTYPE_DIR);
+    REQUIRE(dentries[3].file_type == FTYPE_FILE);
+    REQUIRE(strcmp(dentries[1].name, "..") == 0);
+    REQUIRE(strcmp(dentries[2].name, "subdir") == 0);
+    REQUIRE(strcmp(dentries[3].name, "subfile") == 0);
 
     /* 测试删除文件/目录 */
 
-    CAPTURE(dentries[1].name, dentries[1].file_type);
-    REQUIRE(remove_dentry(handle1, &sb, bitmap, &dentries[1], &dentries[0]) ==
+    CAPTURE(dir_helloworld.name, dir_root.name);
+    REQUIRE(remove_dentry(handle1, &sb, bitmap, &dir_helloworld, &dir_root) ==
             0);
-    //    REQUIRE(remove_dentry(handle1, &sb, bitmap, &dentries[2],
-    //    &dentries[0]) ==
-    //            0);
-    //    REQUIRE(remove_dentry(handle1, &sb, bitmap, &dentries[0],
-    //    &dentries[0]) ==
-    //            -1);
 
     /* 再次检查 super block */
     //    REQUIRE(sb.free_inodes_count == 8 * blocksize - 1);
 
-    //    block_read(handle1, blocksize, inode.block, dentries);
-    //    REQUIRE(strcmp(dentries[0].name, ".") == 0);
-    //    REQUIRE(dentries[0].file_type == FTYPE_DIR);
-    //    REQUIRE(dentries[1].file_type == FTYPE_UNUSED);
-    //    REQUIRE(dentries[2].file_type == FTYPE_UNUSED);
+    block_read(handle1, blocksize, inode.block, dentries);
+    REQUIRE(strcmp(dentries[0].name, ".") == 0);
+    REQUIRE(dentries[0].file_type == FTYPE_DIR);
+    REQUIRE(dentries[1].file_type == FTYPE_UNUSED);
 
     free(dentries);
     free(bitmap);
