@@ -28,7 +28,7 @@ target_include_directories(mysh PUBLIC "${PROJECT_SOURCE_DIR}")
 # 测试
 #add_executable(testall ${TESTS_SRCS})
 #target_link_libraries(testall myfs virtualdisk)
-add_executable(testall tests/testtools.cpp tests/test_vdisk.cpp tests/test_myfs.cpp)
+add_executable(testall ${TESTS_SRCS})
 target_link_libraries(testall virtualdisk myfs)
 
 enable_testing()

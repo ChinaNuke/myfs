@@ -40,6 +40,10 @@ TEST_CASE("VirtualDisk All", "[vdisk]") {
     /* vdisk常规读写测试 */
     char *buf_r = (char *)malloc(16 * SECTOR_SIZE * sizeof(char));
     REQUIRE(vdisk_write(handle1, 0, 32, buf_w) == 32);
+
+    vdisk_remove(handle1);
+    handle1 = vdisk_add(vdisk1);
+
     /* 从6号扇区（第7个）开始读取两个扇区的内容 */
     REQUIRE(vdisk_read(handle1, 6, 2, buf_r) == 2);
     REQUIRE(strncmp(buf_r, buf_w + SECTOR_SIZE * 6, SECTOR_SIZE * 2) == 0);

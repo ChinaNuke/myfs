@@ -44,18 +44,27 @@ int mysh_format(char **args);
 int mysh_mount(char **args);
 int mysh_unmount(char **args);
 int mysh_pwd(char **args);
-int mysh_disks(char **args);
+int mysh_df(char **args);
 int mysh_ls(char **args);
+int mysh_chdisk(char **args);
+int mysh_mkdir(char **args);
+int mysh_touch(char **args);
+int mysh_rm(char **args);
+int mysh_stat(char **args);
+int mysh_link(char **args);
 
 /*
   内建命令和它们对应的函数
  */
-char *builtin_str[] = {"cd",    "help",    "exit", "createdisk", "format",
-                       "mount", "unmount", "pwd",  "disks",      "ls"};
+char *builtin_str[] = {
+    "cd", "help", "exit",   "createdisk", "format", "mount", "unmount", "pwd",
+    "df", "ls",   "chdisk", "mkdir",      "touch",  "rm",    "stat",    "link"};
 
 int (*builtin_func[])(char **) = {
-    &mysh_cd,    &mysh_help,    &mysh_exit, &mysh_createdisk, &mysh_format,
-    &mysh_mount, &mysh_unmount, &mysh_pwd,  &mysh_disks,      &mysh_ls};
+    &mysh_cd,     &mysh_help,  &mysh_exit,    &mysh_createdisk,
+    &mysh_format, &mysh_mount, &mysh_unmount, &mysh_pwd,
+    &mysh_df,     &mysh_ls,    &mysh_chdisk,  &mysh_mkdir,
+    &mysh_touch,  &mysh_rm,    &mysh_stat,    &mysh_link};
 
 int mysh_num_builtins() { return sizeof(builtin_str) / sizeof(char *); }
 
@@ -72,8 +81,8 @@ int mysh_cd(char **args) {
     if (args[1] == NULL) {
         fprintf(stderr, "mysh: \"cd\"命令需要一个参数！\n");
     } else {
-        if (chdir(args[1]) != 0) {
-            perror("mysh");
+        if (fs_cd(args[1]) != 0) {
+            fprintf(stderr, "mysh: 切换目录失败，请检查该目录是否存在！\n");
         }
     }
     return 1;
@@ -101,22 +110,27 @@ int mysh_help(char **args) {
    @param args 参数列表.
    @return Always returns 0, to terminate execution.
  */
-int mysh_exit(char **args) { return 0; }
+int mysh_exit(char **args) {
+    for (char c = 'A'; c <= 'Z'; c++) {
+        fs_unmount(c);
+    }
+    return 0;
+}
 
 int mysh_createdisk(char **args) {
     if (args[2] == NULL) {
         fprintf(stderr,
                 "mysh: \"createdisk\"命令需要两个参数！(createdisk "
-                "myfs.fs 16(KBytes))\n");
+                "myfs.fs 16(MBytes))\n");
     } else {
         if (access(args[1], F_OK) != -1) {
             fprintf(stderr, "mysh: 虚拟磁盘%s已存在，请勿重复创建！\n",
                     args[1]);
             return 1;
         }
-        char *buf = (char *)calloc(atoi(args[2]) * 1024, sizeof(char));
+        char *buf = (char *)calloc(atoi(args[2]) * 1024 * 1024, sizeof(char));
         FILE *fp = fopen(args[1], "w+b");
-        fwrite(buf, sizeof(char), atoi(args[2]) * 1024, fp);
+        fwrite(buf, sizeof(char), atoi(args[2]) * 1024 * 1024, fp);
         fclose(fp);
     }
     return 1;
@@ -127,7 +141,7 @@ int mysh_format(char **args) {
         fprintf(stderr,
                 "mysh: \"format\"命令需要两个参数！(format myfs.fs 4096)\n");
     } else {
-        if (fs_format(args[1], (uint16_t)args[2]) != 0) {
+        if (fs_format(args[1], atoi(args[2])) != 0) {
             fprintf(stderr, "mysh: 格式化虚拟磁盘%s失败！\n", args[1]);
         } else {
             fprintf(stdout, "mysh: 格式化虚拟磁盘%s成功！\n", args[1]);
@@ -177,18 +191,97 @@ int mysh_pwd(char **args) {
     return 1;
 }
 
-int mysh_disks(char **args) {
+int mysh_df(char **args) {
     if (args[1] != NULL) {
         fprintf(stderr, "mysh: \"disks\"命令不需要参数！\n");
     } else {
         fprintf(stdout, "mysh: 当前已挂载的磁盘有：\n");
-        fs_disks();
+        fs_df();
     }
     return 1;
 }
 
 int mysh_ls(char **args) {
-    //
+    if (args[1] != NULL) {
+        fprintf(stderr, "mysh: \"ls\"命令不需要参数！\n");
+    } else {
+        fs_ls();
+    }
+    return 1;
+}
+
+int mysh_chdisk(char **args) {
+    if (args[1] == NULL) {
+        fprintf(stderr, "mysh: \"chdisk\"命令需要一个参数！(chdisk A)\n");
+    } else {
+        if (fs_chdisk(args[1][0]) != 0) {
+            fprintf(stderr, "mysh: 切换磁盘失败，请检查该盘符是否存在！\n");
+        }
+    }
+    return 1;
+}
+
+int mysh_mkdir(char **args) {
+    if (args[1] == NULL) {
+        fprintf(stderr, "mysh: \"mkdir\"命令需要一个参数！(mkdir mydir)\n");
+    } else {
+        if (fs_mkdir(args[1]) != 0) {
+            fprintf(stderr, "mysh: 创建目录%s失败！\n", args[1]);
+        } else {
+            fprintf(stderr, "mysh: 创建目录%s成功！\n", args[1]);
+        }
+    }
+    return 1;
+}
+
+int mysh_touch(char **args) {
+    if (args[1] == NULL) {
+        fprintf(stderr, "mysh: \"touch\"命令需要一个参数！(touch myfile)\n");
+    } else {
+        if (fs_touch(args[1]) != 0) {
+            fprintf(stderr, "mysh: 创建文件%s失败！\n", args[1]);
+        } else {
+            fprintf(stderr, "mysh: 创建文件%s成功！\n", args[1]);
+        }
+    }
+    return 1;
+}
+
+int mysh_rm(char **args) {
+    if (args[1] == NULL) {
+        fprintf(stderr, "mysh: \"rm\"命令需要一个参数！(rm myfile)\n");
+    } else {
+        if (fs_rm(args[1]) != 0) {
+            fprintf(stderr, "mysh: 删除文件或目录%s失败！\n", args[1]);
+        } else {
+            fprintf(stdout, "mysh: 删除文件或目录%s成功！\n", args[1]);
+        }
+    }
+    return 1;
+}
+
+int mysh_stat(char **args) {
+    if (args[1] == NULL) {
+        fprintf(stderr, "mysh: \"stat\"命令需要一个参数！(stat myfile)\n");
+    } else {
+        if (fs_stat(args[1]) != 0) {
+            fprintf(stderr, "mysh: 删除文件或目录%s失败！\n", args[1]);
+        }
+    }
+    return 1;
+}
+
+int mysh_link(char **args) {
+    if (args[2] == NULL) {
+        fprintf(stderr,
+                "mysh: \"link\"命令需要两个参数！(link mylink target)\n");
+    } else {
+        if (fs_link(args[1], args[2]) != 0) {
+            fprintf(stderr, "mysh: 创建目录%s失败！\n", args[1]);
+        } else {
+            fprintf(stderr, "mysh: 创建目录%s成功！\n", args[1]);
+        }
+    }
     return 1;
 }
 

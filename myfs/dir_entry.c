@@ -64,8 +64,8 @@ int create_dentry(vdisk_handle_t handle, super_block_t* sb, uint8_t* bitmap,
     c_inode.links_count = 1;
     uint32_t block_no = inode_append_block(handle, sb, &c_inode);
     c_inode.block = block_no; /* 这个属性似乎没什么用 */
-
     int32_t c_inode_no = inode_alloc(sb, bitmap);
+    sb->free_inodes_count--;
     assert(c_inode_no != INODE_ERROR);
 
     dump_inode(handle, sb->block_size, c_inode_no,
@@ -87,6 +87,8 @@ int create_dentry(vdisk_handle_t handle, super_block_t* sb, uint8_t* bitmap,
         free(dentries);
     }
 
+    //    assert(0);
+
     /* 为新建目录添加两个目录项：当前目录（.）和父目录（..） */
     if (file_type == FTYPE_DIR) {
         dir_entry_t* init_dentries = (dir_entry_t*)malloc(sb->block_size);
@@ -101,9 +103,55 @@ int create_dentry(vdisk_handle_t handle, super_block_t* sb, uint8_t* bitmap,
         block_write(handle, sb->block_size, block_no, init_dentries);
         free(init_dentries);
     }
+    //    assert(0);
 
     return 0;
 }
+
+int create_link(vdisk_handle_t handle, super_block_t* sb, dir_entry_t* parent,
+                char* name, dir_entry_t* target) {
+    uint32_t free_dentry_block_at = 0;
+    uint16_t free_dentry_offset = 0;
+    inode_t* p_inode = load_inode(handle, sb->block_size, parent->inode);
+
+    dir_entry_t* dentries = malloc(sb->block_size);
+
+    /* 每次读入一个block，遍历block中的dentries */
+    for (uint32_t block = 0; block < p_inode->blocks; block++) {
+        uint32_t block_addr =
+            locate_block(handle, sb->block_size, p_inode, block);
+
+        block_read(handle, sb->block_size, block_addr, dentries);
+        for (uint16_t i = 0; i < sb->block_size / sizeof(dir_entry_t); i++) {
+            if (strcmp(dentries[i].name, name) == 0) {
+                free(dentries);
+                return -1;
+            } else if (dentries[i].file_type == FTYPE_UNUSED &&
+                       free_dentry_block_at == 0) {
+                free_dentry_block_at = block_addr;
+                free_dentry_offset = i;
+            }
+        }
+    }
+
+    dir_entry_t c_dentry;
+    strcpy(c_dentry.name, name);
+    c_dentry.inode = target->inode;
+    c_dentry.file_type = FTYPE_LINK;
+
+    block_read(handle, sb->block_size, free_dentry_block_at, dentries);
+    memcpy(&dentries[free_dentry_offset], &c_dentry, sizeof(dir_entry_t));
+    block_write(handle, sb->block_size, free_dentry_block_at, dentries);
+    free(dentries);
+    free(p_inode);
+
+    inode_t* target_inode = load_inode(handle, sb->block_size, target->inode);
+    target_inode->links_count++;
+    dump_inode(handle, sb->block_size, target->inode, target_inode);
+
+    return 0;
+}
+
 void release_dentry(vdisk_handle_t handle, super_block_t* sb, uint8_t* bitmap,
                     dir_entry_t* dentry);
 
@@ -142,6 +190,8 @@ int remove_dentry(vdisk_handle_t handle, super_block_t* sb, uint8_t* bitmap,
             break;
         }
     }
+    dump_inode(handle, sb->block_size, parent->inode,
+               p_inode); /* inode写入磁盘 */
 
     free(dentries);
     return 0;
@@ -162,15 +212,17 @@ void release_dentry(vdisk_handle_t handle, super_block_t* sb, uint8_t* bitmap,
         inode_struct->links_count--;
         /* TODO: 此处应考虑链接减小为0时删除文件/目录 */
         dump_inode(handle, sb->block_size, dentry->inode, inode_struct);
-        free(inode_struct);
+        //        free(inode_struct);
     } else if (dentry->file_type == FTYPE_FILE) {
         for (uint32_t i = 0; i < inode_struct->blocks; i++) {
             uint32_t block_addr =
                 locate_block(handle, sb->block_size, inode_struct, i);
             data_block_free(handle, sb->block_size, block_addr,
                             &sb->group_stack);
+            sb->free_blocks_count++;
         }
         inode_free(sb, bitmap, dentry->inode);
+        sb->free_inodes_count++;
     } else if (dentry->file_type == FTYPE_DIR) {
         uint32_t blocks_count = inode_struct->blocks;
 
@@ -192,9 +244,11 @@ void release_dentry(vdisk_handle_t handle, super_block_t* sb, uint8_t* bitmap,
                 }
             }
             data_block_free(handle, sb->block_size, block, &sb->group_stack);
+            sb->free_blocks_count++;
         }
         free(dentries);
         inode_free(sb, bitmap, dentry->inode);
+        sb->inodes_count++;
     }
     free(inode_struct);
 }

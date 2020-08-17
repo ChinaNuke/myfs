@@ -3,6 +3,7 @@
 
 #include "data_block.h"
 #include "inode.h"
+#include "super_block.h"
 #include "virtual_disk.h"
 
 /* 目录项
@@ -25,42 +26,13 @@ typedef struct dir_entry {
 
 } __attribute__((packed)) dir_entry_t;
 
-/*读目录项所在的blcok
- *block:目录项存储的起始块号
- */
-uint8_t read_dir_block(vdisk_handle_t handle, uint32_t blocksize,
-                       uint32_t block, void* buf);
-
-/*新建目录
- *inode_id:当前目录的inode号
- *name:要创建的文件名
- */
-int add_document(char* name, vdisk_handle_t handle, uint32_t blocksize,
-                 uint16_t inode_id);
-
 int create_dentry(vdisk_handle_t handle, super_block_t* sb, uint8_t* bitmap,
                   dir_entry_t* parent, char* name, uint8_t file_type);
-
-/*删除目录 */
-int del_document(char* name, vdisk_handle_t handle, uint32_t blocksize,
-                 uint16_t inode_id);
 
 int remove_dentry(vdisk_handle_t handle, super_block_t* sb, uint8_t* bitmap,
                   dir_entry_t* dentry, dir_entry_t* parent);
 
-/*通过文件名查找inode号
- *block:存放目录项的block号
-
- *site:该blcok在site位置可以存一个目录项
-*/
-int search_inode_addr(char* name, vdisk_handle_t handle, uint32_t block,
-                      uint32_t blocksize, uint8_t* site);
-
-/*读一个block,转成目录结构 */
-dir_entry_t* block_to_dir(vdisk_handle_t handle, uint32_t block,
-                          uint32_t blocksize);
-
-/* 通过文件名判断文件类型，返回file_type_id*/
-uint8_t name2type_no(char* name);
+int create_link(vdisk_handle_t handle, super_block_t* sb, dir_entry_t* parent,
+                char* name, dir_entry_t* target);
 
 #endif /* __DIR_ENTRY__H__ */

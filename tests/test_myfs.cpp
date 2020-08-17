@@ -258,6 +258,9 @@ TEST_CASE("Filesystem Format and Create directory or file",
 
     REQUIRE(myfs_format(handle1, blocksize) == 0);
 
+    vdisk_remove(handle1);
+    handle1 = vdisk_add(vdisk1);
+
     /* 检查 superblock 区域 */
     super_block_t sb;
     load_super_block(handle1, &sb);

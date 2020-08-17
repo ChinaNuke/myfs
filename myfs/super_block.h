@@ -19,12 +19,9 @@ typedef struct {
     uint16_t inodes_count;
     uint32_t free_blocks_count; /* 空闲 data block 数 */
     uint16_t free_inodes_count;
-    // uint32_t first_data_block; /* 第一个使用的 data block 块号??? */
-    uint64_t total_size; /* 文件系统大小（字节） */
-    // uint32_t inode_bitmap;     /* inode bitmap 的块号*/
-    // uint32_t inode_table;      /* inode table 的块号 */
+    uint64_t total_size;       /* 文件系统大小（字节） */
     block_stack_t group_stack; /* 第一个空闲盘块号栈 */
-
+    //    dir_entry_t *root_dentry;
 } super_block_t;
 
 int load_super_block(vdisk_handle_t handle, super_block_t *sb);
