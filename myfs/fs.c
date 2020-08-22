@@ -91,7 +91,6 @@ int fs_chdisk(char c) {
 }
 
 int fs_mkdir(char *path) {
-    assert(cur_dentry->inode == 0);
     //    assert(0);
     return myfs_mkdir(filesystems[cur_fs], cur_dentry, path);
 }

@@ -12,7 +12,6 @@
 #include <stdlib.h>
 #include <string.h>
 #include <sys/types.h>
-#include <sys/wait.h>
 #include <unistd.h>
 
 #include "filesystem.h"
@@ -290,27 +289,7 @@ int mysh_link(char **args) {
   @param args 以 Null 结尾的参数列表(包括程序名).
   @return Always returns 1, to continue execution.
  */
-int mysh_launch(char **args) {
-    pid_t pid = fork();
-    if (pid == 0) {
-        // 当前进程是子进程
-        if (execvp(args[0], args) == -1) {
-            perror("mysh");
-        }
-        exit(EXIT_FAILURE);
-    } else if (pid < 0) {
-        // fork 发生错误
-        perror("mysh");
-    } else {
-        // 当前进程是父进程
-        int status;
-        do {
-            waitpid(pid, &status, WUNTRACED);
-        } while (!WIFEXITED(status) && !WIFSIGNALED(status));
-    }
-
-    return 1;
-}
+int mysh_launch(char **args) { return 1; }
 
 /**
    @brief 执行内建命令或者启动程序
