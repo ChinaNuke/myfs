@@ -248,7 +248,6 @@ void release_dentry(vdisk_handle_t handle, super_block_t* sb, uint8_t* bitmap,
         }
         free(dentries);
         inode_free(sb, bitmap, dentry->inode);
-        sb->inodes_count++;
     }
     free(inode_struct);
 }

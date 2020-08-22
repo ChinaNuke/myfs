@@ -153,6 +153,7 @@ int inode_append_block(vdisk_handle_t handle, super_block_t* sb,
     }
 
     uint32_t new_block = data_block_alloc(handle, blocksize, &sb->group_stack);
+    sb->free_blocks_count--;
     uint32_t blocks_count = inode_struct->blocks;
     if (blocks_count < direct_max) {
         inode_struct->direct_blocks[blocks_count] = new_block;
