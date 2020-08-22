@@ -91,7 +91,7 @@ int create_dentry(vdisk_handle_t handle, super_block_t* sb, uint8_t* bitmap,
 
     /* 为新建目录添加两个目录项：当前目录（.）和父目录（..） */
     if (file_type == FTYPE_DIR) {
-        dir_entry_t* init_dentries = (dir_entry_t*)malloc(sb->block_size);
+        dir_entry_t* init_dentries = (dir_entry_t*)calloc(1, sb->block_size);
         strcpy(init_dentries[0].name, ".");
         init_dentries[0].inode = c_inode_no;
         init_dentries[0].file_type = FTYPE_DIR;
