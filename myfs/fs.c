@@ -109,11 +109,22 @@ int fs_rm(char *path) { return myfs_rm(filesystems[cur_fs], cur_dentry, path); }
 int fs_cd(char *path) {
     dir_entry_t *target =
         myfs_search_dentry(filesystems[cur_fs], cur_dentry, path);
-    free(cur_dentry);
-    cur_dentry = target;
-    strcat(cur_dir, "/");
-    strcat(cur_dir, path);
-    return 0;
+    if (target != NULL && target->file_type == FTYPE_DIR) {
+        free(cur_dentry);
+        cur_dentry = target;
+        if (strcmp(path, "..") == 0) {
+            char *last_slash = strrchr(cur_dir, '/');
+            assert(last_slash != NULL);
+            *last_slash = '\0';
+            char *last_last_slash = strrchr(cur_dir, '/');
+            *(last_last_slash + 1) = '\0';
+        } else if (strcmp(path, ".") != 0) {
+            strcat(cur_dir, path);
+            strcat(cur_dir, "/");
+        }
+        return 0;
+    }
+    return -1;
 }
 
 int fs_stat(char *path) {

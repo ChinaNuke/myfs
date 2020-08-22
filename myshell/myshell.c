@@ -136,7 +136,7 @@ int mysh_createdisk(char **args) {
 }
 
 int mysh_format(char **args) {
-    if (args[2] == NULL) {
+    if (args[1] == NULL || args[2] == NULL) {
         fprintf(stderr,
                 "mysh: \"format\"命令需要两个参数！(format myfs.fs 4096)\n");
     } else {

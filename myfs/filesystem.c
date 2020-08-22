@@ -32,8 +32,8 @@ int myfs_format(vdisk_handle_t handle, uint16_t blocksize) {
     uint32_t inodes_size = inodes_count * INODE_SIZE;
     uint32_t inode_blocks = CEIL_DIVIDE(inodes_size, blocksize);
 
-    printf("inode_blocks:%d, blocksize: %d, handle: %d\n", inode_blocks,
-           blocksize, handle);
+    //    printf("inode_blocks:%d, blocksize: %d, handle: %d\n", inode_blocks,
+    //           blocksize, handle);
 
     //    assert(0);
 
@@ -60,9 +60,12 @@ int myfs_format(vdisk_handle_t handle, uint16_t blocksize) {
         return MYFS_ERROR;
     }
 
+    assert(sb.free_inodes_count == 8 * blocksize);
+
     /* 建立根目录 */
     uint8_t *bitmap = calloc(1, blocksize);
     create_dentry(handle, &sb, bitmap, NULL, "", FTYPE_DIR);
+
     block_write(handle, blocksize, 1, bitmap); /* 写入 bitmap */
     free(bitmap);
 
@@ -178,6 +181,8 @@ int myfs_stat(myfs_t *fs, dir_entry_t *cur_dir, char *path) {
     printf("占用数据块数：%d\n", inode->blocks);
 
     free(inode);
+
+    return 0;
 }
 
 int myfs_link(myfs_t *fs, char *link, dir_entry_t *cur_dir, char *targetname) {
@@ -231,7 +236,7 @@ dir_entry_t *myfs_parse_path(myfs_t *fs, dir_entry_t *cur_dir,
     }
 
     char *first_slash_pos;
-    char *subpath = relative_path;
+    char *subpath = (char *)relative_path;
     char subdir[1024];
     int endflag = 0;
 

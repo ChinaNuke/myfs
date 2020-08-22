@@ -65,7 +65,7 @@ int create_dentry(vdisk_handle_t handle, super_block_t* sb, uint8_t* bitmap,
     uint32_t block_no = inode_append_block(handle, sb, &c_inode);
     c_inode.block = block_no; /* 这个属性似乎没什么用 */
     int32_t c_inode_no = inode_alloc(sb, bitmap);
-    sb->free_inodes_count--;
+
     assert(c_inode_no != INODE_ERROR);
 
     dump_inode(handle, sb->block_size, c_inode_no,
