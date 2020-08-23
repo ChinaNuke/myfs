@@ -17,7 +17,7 @@
 #define DIR_ENTRY_ERROR -1
 
 /* FTYPE_UNUSED 必须为0，其他无所谓 */
-enum filetypes { FTYPE_UNUSED = 0, FTYPE_FILE, FTYPE_DIR, FTYPE_LINK };
+enum filetypes { FTYPE_UNUSED = 0, FTYPE_FILE, FTYPE_DIR };
 
 typedef struct dir_entry {
     char name[29];

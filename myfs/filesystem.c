@@ -35,8 +35,6 @@ int myfs_format(vdisk_handle_t handle, uint16_t blocksize) {
     //    printf("inode_blocks:%d, blocksize: %d, handle: %d\n", inode_blocks,
     //           blocksize, handle);
 
-    //    assert(0);
-
     /* 写入 inode table */
     for (uint32_t i = 0; i < inode_blocks; i++) {
         if (block_write(handle, blocksize, 2 + i, empty_block) == BLOCK_ERROR) {
@@ -61,14 +59,13 @@ int myfs_format(vdisk_handle_t handle, uint16_t blocksize) {
     }
 
     assert(sb.free_inodes_count == 8 * blocksize);
+    sb.blocks_count = sb.free_blocks_count = data_blocks_count;
 
     /* 建立根目录 */
     uint8_t *bitmap = calloc(1, blocksize);
     create_dentry(handle, &sb, bitmap, NULL, "", FTYPE_DIR);
     block_write(handle, blocksize, 1, bitmap); /* 写入 bitmap */
     free(bitmap);
-
-    sb.blocks_count = sb.free_blocks_count = data_blocks_count;
 
     // sb.first_data_block = 1;
     void *buf = calloc(1, blocksize);
@@ -135,8 +132,6 @@ int myfs_ls(myfs_t *fs, dir_entry_t *cur_dir) {
                 printf("\033[33m%s\033[0m\t", dentries[j].name);
             } else if (dentries[j].file_type == FTYPE_FILE) {
                 printf("%s\t", dentries[j].name);
-            } else if (dentries[j].file_type == FTYPE_LINK) {
-                printf("\033[36m%s\033[0m\t", dentries[j].name);
             }
         }
     }
@@ -168,8 +163,6 @@ int myfs_stat(myfs_t *fs, dir_entry_t *cur_dir, char *path) {
         printf("类型：目录\n");
     } else if (inode->mode == FTYPE_FILE) {
         printf("类型：文件\n");
-    } else if (inode->mode == FTYPE_LINK) {
-        printf("类型：链接\n");
     }
     printf("大小：%d字节\n", inode->size);
     printf("创建时间：%s", asctime(localtime(&inode->ctime)));

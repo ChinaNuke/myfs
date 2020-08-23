@@ -49,20 +49,20 @@ int mysh_mkdir(char **args);
 int mysh_touch(char **args);
 int mysh_rm(char **args);
 int mysh_stat(char **args);
-int mysh_link(char **args);
+int mysh_ln(char **args);
 
 /*
   内建命令和它们对应的函数
  */
 char *builtin_str[] = {
     "cd", "help", "exit",   "createdisk", "format", "mount", "unmount", "pwd",
-    "df", "ls",   "chdisk", "mkdir",      "touch",  "rm",    "stat",    "link"};
+    "df", "ls",   "chdisk", "mkdir",      "touch",  "rm",    "stat",    "ln"};
 
 int (*builtin_func[])(char **) = {
     &mysh_cd,     &mysh_help,  &mysh_exit,    &mysh_createdisk,
     &mysh_format, &mysh_mount, &mysh_unmount, &mysh_pwd,
     &mysh_df,     &mysh_ls,    &mysh_chdisk,  &mysh_mkdir,
-    &mysh_touch,  &mysh_rm,    &mysh_stat,    &mysh_link};
+    &mysh_touch,  &mysh_rm,    &mysh_stat,    &mysh_ln};
 
 int mysh_num_builtins() { return sizeof(builtin_str) / sizeof(char *); }
 
@@ -269,10 +269,9 @@ int mysh_stat(char **args) {
     return 1;
 }
 
-int mysh_link(char **args) {
-    if (args[2] == NULL) {
-        fprintf(stderr,
-                "mysh: \"link\"命令需要两个参数！(link mylink target)\n");
+int mysh_ln(char **args) {
+    if (args[1] == NULL || args[2] == NULL) {
+        fprintf(stderr, "mysh: \"ln\"命令需要两个参数！(ln mylink target)\n");
     } else {
         if (fs_link(args[1], args[2]) != 0) {
             fprintf(stderr, "mysh: 创建目录%s失败！\n", args[1]);

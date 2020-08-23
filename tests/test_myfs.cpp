@@ -268,6 +268,7 @@ TEST_CASE("Filesystem Format and Create directory or file",
     REQUIRE(sb.inode_size == INODE_SIZE);
     REQUIRE(sb.inodes_count == 8 * blocksize);
     REQUIRE(sb.free_inodes_count == 8 * blocksize - 1);
+    REQUIRE(sb.free_blocks_count == sb.blocks_count - 1);
     REQUIRE(sb.total_size == 2000 * blocksize);
 
     /* 检查 bitmap 区域 */
@@ -287,8 +288,8 @@ TEST_CASE("Filesystem Format and Create directory or file",
     REQUIRE(inode.uid == 0);
     REQUIRE(inode.mode == FTYPE_DIR);
     REQUIRE(inode.blocks == 1);
-    REQUIRE(inode.atime == 0);
-    REQUIRE(inode.ctime == 0);
+    //    REQUIRE(inode.atime == 0);
+    //    REQUIRE(inode.ctime == 0);
     REQUIRE(inode.block == 1125);
     REQUIRE(inode.direct_blocks[0] == 1125);
     char *empty_block = (char *)calloc(1, blocksize);
