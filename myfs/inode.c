@@ -111,7 +111,6 @@ inode_t* load_inode(vdisk_handle_t handle, uint16_t blocksize, uint16_t inode) {
     uint16_t inodes_per_block = blocksize / INODE_SIZE;
     uint32_t at_block = inode / inodes_per_block + 2; /* 确定inode所在的块号 */
     uint16_t offset = inode % inodes_per_block; /* inode在块内的偏移 */
-
     inode_t* one_inode = malloc(sizeof(inode_t));
     void* buf = malloc(blocksize * sizeof(char));
 

@@ -3,6 +3,7 @@
 
 #include <stddef.h>
 #include <stdint.h>
+#include <time.h>
 
 #include "super_block.h"
 #include "virtual_disk.h"
@@ -30,9 +31,9 @@ typedef struct {
     uint32_t single_indirect;
     uint32_t double_indirect;
     uint32_t triple_indirect;
-    uint32_t atime;       /* 访问时间 access time */
-    uint32_t ctime;       /* 创建时间 creation time */
-    uint32_t mtime;       /* 修改时间 modification time */
+    time_t atime;         /* 访问时间 access time */
+    time_t ctime;         /* 创建时间 creation time */
+    time_t mtime;         /* 修改时间 modification time */
     uint16_t links_count; /* 硬链接计数器 */
     uint32_t blocks;      /* 文件的数据块数 */
     uint32_t block;       /* 指向数据块的指针 */

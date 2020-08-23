@@ -65,14 +65,12 @@ int myfs_format(vdisk_handle_t handle, uint16_t blocksize) {
     /* 建立根目录 */
     uint8_t *bitmap = calloc(1, blocksize);
     create_dentry(handle, &sb, bitmap, NULL, "", FTYPE_DIR);
-
     block_write(handle, blocksize, 1, bitmap); /* 写入 bitmap */
     free(bitmap);
 
     sb.blocks_count = sb.free_blocks_count = data_blocks_count;
 
     // sb.first_data_block = 1;
-
     void *buf = calloc(1, blocksize);
     memcpy(buf, &sb, sizeof(super_block_t));
     if (block_write(handle, blocksize, 0, buf) == BLOCK_ERROR) {
@@ -174,9 +172,9 @@ int myfs_stat(myfs_t *fs, dir_entry_t *cur_dir, char *path) {
         printf("类型：链接\n");
     }
     printf("大小：%d字节\n", inode->size);
-    printf("创建时间：%d\n", inode->ctime);
-    printf("修改时间：%d\n", inode->mtime);
-    printf("访问时间：%d\n", inode->atime);
+    printf("创建时间：%s", asctime(localtime(&inode->ctime)));
+    printf("修改时间：%s", asctime(localtime(&inode->mtime)));
+    printf("访问时间：%s", asctime(localtime(&inode->atime)));
     printf("链接数：%d\n", inode->links_count);
     printf("占用数据块数：%d\n", inode->blocks);
 

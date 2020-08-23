@@ -3,6 +3,7 @@
 #include <assert.h>
 #include <stdlib.h>
 #include <string.h>
+#include <time.h>
 
 #include "block.h"
 #include "data_block.h"
@@ -21,9 +22,10 @@ int create_dentry(vdisk_handle_t handle, super_block_t* sb, uint8_t* bitmap,
     uint32_t free_dentry_block_at = 0;
     uint16_t free_dentry_offset = 0;
 
-    if (parent != NULL) {
-        inode_t* p_inode = load_inode(handle, sb->block_size, parent->inode);
+    inode_t* p_inode = NULL;
 
+    if (parent != NULL) {
+        p_inode = load_inode(handle, sb->block_size, parent->inode);
         assert(sb->block_size % sizeof(dir_entry_t) == 0);
         dir_entry_t* dentries = malloc(sb->block_size);
 
@@ -59,7 +61,9 @@ int create_dentry(vdisk_handle_t handle, super_block_t* sb, uint8_t* bitmap,
     c_inode.uid = 0;
     c_inode.mode = file_type;
     c_inode.size = sb->block_size;
-    c_inode.atime = c_inode.ctime = c_inode.mtime = 0; /* TODO */
+    time_t now;
+    time(&now);
+    c_inode.atime = c_inode.ctime = c_inode.mtime = now;
     c_inode.blocks = 0;
     c_inode.links_count = 1;
     uint32_t block_no = inode_append_block(handle, sb, &c_inode);
@@ -85,6 +89,8 @@ int create_dentry(vdisk_handle_t handle, super_block_t* sb, uint8_t* bitmap,
         memcpy(&dentries[free_dentry_offset], &c_dentry, sizeof(dir_entry_t));
         block_write(handle, sb->block_size, free_dentry_block_at, dentries);
         free(dentries);
+        p_inode->mtime = now;
+        dump_inode(handle, sb->block_size, parent->inode, p_inode);
     }
 
     //    assert(0);
@@ -103,7 +109,8 @@ int create_dentry(vdisk_handle_t handle, super_block_t* sb, uint8_t* bitmap,
         block_write(handle, sb->block_size, block_no, init_dentries);
         free(init_dentries);
     }
-    //    assert(0);
+
+    free(p_inode);
 
     return 0;
 }
