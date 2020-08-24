@@ -139,3 +139,10 @@ int fs_link(char *link, char *target) {
 int fs_chmod(char *path, uint16_t perm) {
     return myfs_chmod(filesystems[cur_fs], cur_dentry, path, perm);
 }
+
+int fs_mv(char *from, char *to) {
+    if (fs_link(to, from) == 0 && fs_rm(from) == 0) {
+        return 0;
+    }
+    return -1;
+}

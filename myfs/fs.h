@@ -41,4 +41,6 @@ int fs_link(char *link, char *path);
 
 int fs_chmod(char *path, uint16_t perm);
 
+int fs_mv(char *from, char *to);
+
 #endif /* __FS_H__*/

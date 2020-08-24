@@ -51,6 +51,7 @@ int mysh_rm(char **args);
 int mysh_stat(char **args);
 int mysh_ln(char **args);
 int mysh_chmod(char **args);
+int mysh_mv(char **args);
 
 /*
   内建命令和它们对应的函数
@@ -58,13 +59,13 @@ int mysh_chmod(char **args);
 char *builtin_str[] = {"cd",     "help",    "exit",  "createdisk", "format",
                        "mount",  "unmount", "pwd",   "df",         "ls",
                        "chdisk", "mkdir",   "touch", "rm",         "stat",
-                       "ln",     "chmod"};
+                       "ln",     "chmod",   "mv"};
 
 int (*builtin_func[])(char **) = {
     &mysh_cd,     &mysh_help,    &mysh_exit,  &mysh_createdisk, &mysh_format,
     &mysh_mount,  &mysh_unmount, &mysh_pwd,   &mysh_df,         &mysh_ls,
     &mysh_chdisk, &mysh_mkdir,   &mysh_touch, &mysh_rm,         &mysh_stat,
-    &mysh_ln,     &mysh_chmod};
+    &mysh_ln,     &mysh_chmod,   &mysh_mv};
 
 int mysh_num_builtins() { return sizeof(builtin_str) / sizeof(char *); }
 
@@ -101,7 +102,6 @@ int mysh_help(char **args) {
         printf("  %s\n", builtin_str[i]);
     }
 
-    printf("Use the man command for information on other programs.\n");
     return 1;
 }
 
@@ -293,6 +293,19 @@ int mysh_chmod(char **args) {
             fprintf(stderr, "mysh: 修改%s的权限失败！\n", args[1]);
         } else {
             fprintf(stderr, "mysh: 修改%s的权限成功！\n", args[1]);
+        }
+    }
+    return 1;
+}
+
+int mysh_mv(char **args) {
+    if (args[1] == NULL || args[2] == NULL) {
+        fprintf(stderr, "mysh: \"mv\"命令需要两个参数！(mv from to)\n");
+    } else {
+        if (fs_mv(args[1], args[2]) != 0) {
+            fprintf(stderr, "mysh: 移动文件%s到%s失败！\n", args[1], args[2]);
+        } else {
+            fprintf(stderr, "mysh: 移动文件%s到%s成功！\n", args[1], args[2]);
         }
     }
     return 1;
