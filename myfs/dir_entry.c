@@ -60,6 +60,7 @@ int create_dentry(vdisk_handle_t handle, super_block_t* sb, uint8_t* bitmap,
     inode_t c_inode;
     c_inode.uid = 0;
     c_inode.mode = file_type;
+    c_inode.permission = (uint16_t)777;
     c_inode.size = sb->block_size;
     time_t now;
     time(&now);

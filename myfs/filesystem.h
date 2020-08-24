@@ -41,4 +41,6 @@ int myfs_cd(char *path);
 
 int myfs_stat(myfs_t *fs, dir_entry_t *cur_dir, char *path);
 
+int myfs_chmod(myfs_t *fs, dir_entry_t *cur_dir, char *path, uint16_t perm);
+
 #endif /* __FILESYSTEM__H__ */

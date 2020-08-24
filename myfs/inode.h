@@ -24,8 +24,9 @@
 #define INODE_SIZE 128
 
 typedef struct {
-    uint16_t mode; /* 文件类型和访问权限 */
-    uint16_t uid;  /* 拥有者的标识符 */
+    uint16_t mode;       /* 文件类型 */
+    uint16_t uid;        /* 拥有者的标识符 */
+    uint16_t permission; /* 访问权限 */
     uint32_t size; /* 文件大小（字节）,单个文件限制为最大4GB */
     uint32_t direct_blocks[12]; /* 12个直接指向分配给文件的数据块指针 */
     uint32_t single_indirect;

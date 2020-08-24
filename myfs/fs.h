@@ -39,4 +39,6 @@ int fs_stat(char *path);
 
 int fs_link(char *link, char *path);
 
+int fs_chmod(char *path, uint16_t perm);
+
 #endif /* __FS_H__*/

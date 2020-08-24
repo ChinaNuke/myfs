@@ -50,19 +50,21 @@ int mysh_touch(char **args);
 int mysh_rm(char **args);
 int mysh_stat(char **args);
 int mysh_ln(char **args);
+int mysh_chmod(char **args);
 
 /*
   内建命令和它们对应的函数
  */
-char *builtin_str[] = {
-    "cd", "help", "exit",   "createdisk", "format", "mount", "unmount", "pwd",
-    "df", "ls",   "chdisk", "mkdir",      "touch",  "rm",    "stat",    "ln"};
+char *builtin_str[] = {"cd",     "help",    "exit",  "createdisk", "format",
+                       "mount",  "unmount", "pwd",   "df",         "ls",
+                       "chdisk", "mkdir",   "touch", "rm",         "stat",
+                       "ln",     "chmod"};
 
 int (*builtin_func[])(char **) = {
-    &mysh_cd,     &mysh_help,  &mysh_exit,    &mysh_createdisk,
-    &mysh_format, &mysh_mount, &mysh_unmount, &mysh_pwd,
-    &mysh_df,     &mysh_ls,    &mysh_chdisk,  &mysh_mkdir,
-    &mysh_touch,  &mysh_rm,    &mysh_stat,    &mysh_ln};
+    &mysh_cd,     &mysh_help,    &mysh_exit,  &mysh_createdisk, &mysh_format,
+    &mysh_mount,  &mysh_unmount, &mysh_pwd,   &mysh_df,         &mysh_ls,
+    &mysh_chdisk, &mysh_mkdir,   &mysh_touch, &mysh_rm,         &mysh_stat,
+    &mysh_ln,     &mysh_chmod};
 
 int mysh_num_builtins() { return sizeof(builtin_str) / sizeof(char *); }
 
@@ -282,6 +284,20 @@ int mysh_ln(char **args) {
     return 1;
 }
 
+int mysh_chmod(char **args) {
+    if (args[1] == NULL || args[2] == NULL) {
+        fprintf(stderr,
+                "mysh: \"chmod\"命令需要两个参数！(chmod myfile 777)\n");
+    } else {
+        if (fs_chmod(args[1], atoi(args[2])) != 0) {
+            fprintf(stderr, "mysh: 修改%s的权限失败！\n", args[1]);
+        } else {
+            fprintf(stderr, "mysh: 修改%s的权限成功！\n", args[1]);
+        }
+    }
+    return 1;
+}
+
 /**
   @brief 启动一个程序，然后等待它执行终止。
   @param args 以 Null 结尾的参数列表(包括程序名).
@@ -416,7 +432,34 @@ void mysh_loop(void) {
 int main(int argc, char **argv) {
     // Load config files, if any.
 
-    mysh_help(NULL);
+    printf(" \033[36m__  __\033[0m       \033[33m____  _   _\033[0m \n");
+    printf("\033[36m|  \\/  |_   _\033[0m\033[33m/ ___|| | | |\033[0m\n");
+    printf("\033[36m| |\\/| | | |\033[0m \033[33m\\___ \\| |_| |\033[0m\n");
+    printf("\033[36m| |  | | |_| |\033[0m\033[33m___) |  _  |\033[0m\n");
+    printf("\033[36m|_|  |_|\\__, |\033[0m\033[33m____/|_| |_|\033[0m\n");
+    printf("        \033[36m|___/\033[0m  \n");
+    printf("\n-------------------------------------------------------\n\n");
+    printf(
+        "欢迎使用 \033[33mMy Shell\033[0m！本程序由 \033[33m彭炳炜\033[0m 和 "
+        "\033[33m程阳\033[0m 两人完成！\n");
+    printf("Mysh version 1.0\n");
+    printf(
+        "本项目实现了一个\033[33m类 Unix "
+        "文件系统\033[0m，采用\033[33m成组链接法、混合索引、索引结点\033["
+        "0m方式组织文件\n");
+    printf(
+        "实现了 Unix "
+        "文件系统的大部分功能，采用\033[33m树形目录结构\033[0m，实现了\033["
+        "33m文件重名、安全控制和共享\033[0m"
+        "\n");
+    printf(
+        "实现了\033["
+        "33m文件和目录以及链接的创建、删除、磁盘格式化、挂载和卸载\033["
+        "0m等功能\n");
+    printf(
+        "项目整体上采用\033[33m模块化分层\033[0m设计，理论上\033["
+        "33m也支持实际的物理磁盘\033[0m。\n");
+    printf("输入 \"\033[33mhelp\033[0m\" 查看使用帮助！\n\n");
     // Run command loop.
     mysh_loop();
 

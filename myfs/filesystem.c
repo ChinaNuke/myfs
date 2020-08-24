@@ -159,6 +159,7 @@ int myfs_stat(myfs_t *fs, dir_entry_t *cur_dir, char *path) {
         load_inode(fs->disk_handle, fs->sb->block_size, target->inode);
     printf("\033[33m%s:\033[0m\n", path);
     printf("拥有者：%d\n", inode->uid);
+    printf("访问权限：%d\n", inode->permission);
     if (inode->mode == FTYPE_DIR) {
         printf("类型：目录\n");
     } else if (inode->mode == FTYPE_FILE) {
@@ -183,6 +184,19 @@ int myfs_link(myfs_t *fs, char *link, dir_entry_t *cur_dir, char *targetname) {
         return -1;
     }
     create_link(fs->disk_handle, fs->sb, cur_dir, link, target);
+    return 0;
+}
+
+int myfs_chmod(myfs_t *fs, dir_entry_t *cur_dir, char *path, uint16_t perm) {
+    dir_entry_t *target = myfs_search_dentry(fs, cur_dir, path);
+    if (target == NULL) {
+        assert(0);
+        return -1;
+    }
+    inode_t *inode =
+        load_inode(fs->disk_handle, fs->sb->block_size, target->inode);
+    inode->permission = perm;
+    dump_inode(fs->disk_handle, fs->sb->block_size, target->inode, inode);
     return 0;
 }
 

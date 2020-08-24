@@ -135,3 +135,7 @@ int fs_stat(char *path) {
 int fs_link(char *link, char *target) {
     return myfs_link(filesystems[cur_fs], link, cur_dentry, target);
 }
+
+int fs_chmod(char *path, uint16_t perm) {
+    return myfs_chmod(filesystems[cur_fs], cur_dentry, path, perm);
+}
