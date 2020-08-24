@@ -84,7 +84,13 @@ int fs_chdisk(char c) {
     if (filesystems[i] != NULL) {
         cur_fs = i;
         cur_dir[0] = 'A' + i;
-        strcpy(cur_dir + 1, ":");
+        strcpy(cur_dir + 1, ":/");
+        free(cur_dentry);
+        dir_entry_t *root = malloc(sizeof(dir_entry_t));
+        strcpy(root->name, "");
+        root->inode = 0;
+        root->file_type = FTYPE_DIR;
+        cur_dentry = root;
         return 0;
     }
     return -1;
